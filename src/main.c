@@ -234,7 +234,7 @@ int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength)
 	}
 	strcpy(filepath, prefix);
 	strcat(filepath, filename);
-	printf("%s\n", filepath);
+	printf("%s\n\n\n", filepath);
 	
 	struct stat filestat;
 	int res = stat(filepath, &filestat);
