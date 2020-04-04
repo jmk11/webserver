@@ -1,17 +1,17 @@
 #include <stdio.h>
 //#include <sys/socket.h>
 #include <netinet/in.h>
-//#include <fcntl.h>
+#include <fcntl.h>
 //#include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
+#include <sys/stat.h>
 
 #include "helpers.h"
 #include "constants.h"
-
-#define UID 1002
+#include "uid.h"
 
 
 int buildSocket(unsigned short port);
@@ -19,7 +19,7 @@ int dropPermissions(unsigned short goaluid);
 int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength);
 
 int getFileName(char *request, char **filename);
-int sanitiseRequest(char *filename);
+int sanitiseRequest(const char *filename);
 int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength);
 int loadHTTPHeaders(off_t fileLength, char **headersbuf, unsigned long *headersLength);
 
@@ -60,10 +60,6 @@ int main(int argc, char **argv)
 			perror("accept clientfd < 0");
 		}
 		else {
-			char response[BUFSIZ] = "HTTP/1.1 200 OK\r\n"
-									"Content-Type: text/html; charset=utf-8\r\n\r\n"
-									"<html><title>Justin</title><body><h3><center>Under Construction</br></br></br></br></br>Coming Christmas 2002!</h3></center></body></html>";
-			
 			requestLen = recv(clientfd, requestbuf, BUFSIZ-1, 0);
 			if (requestLen < 0) {
 				perror("Error recv");
@@ -87,8 +83,8 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 	char *filename = NULL;
 	char *filebuf = NULL;
 	char *headersbuf = NULL;
-	off_t fileLength;
-	unsigned long headersLength;
+	off_t fileLength = 0;
+	unsigned long headersLength = 0;
 	int res;
 	
 	res = getFileName(requestbuf, &filename);
@@ -97,9 +93,6 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 		// end this thread
 		return 1;
 	}
-	printf("Filename: %s\n", filename);
-	fileNotFound(clientfd);
-	return 0;
 	
 	res = sanitiseRequest(filename);
 	if (res != 0) {
@@ -107,6 +100,8 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 		//free(filename);
 		return 1;
 	}
+	printf("Filename: %s\n", filename);
+	
 	res = loadRequestedFile(filename, &filebuf, &fileLength);
 	if (res != 0) {
 		fileNotFound(clientfd);
@@ -219,13 +214,59 @@ int getFileName(char *request, char **filename)
 	return 0;
 }
 
-int sanitiseRequest(char *filename) 
+// filename length < bufsiz
+int sanitiseRequest(const char *filename) 
 {
+	for (unsigned int i = 0; filename[i+1] != 0; i++) {
+		if (filename[i] == '.' && filename[i+1] == '.') {
+			return 1;
+		}
+	}
 	return 0;
 }
 
 int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength) 
-{ 
+{
+	char *prefix = "files/";
+	char *filepath = malloc(strlen(filename) + strlen(prefix) + 1);
+	if (filepath == NULL) {
+		return MALLOCERROR;
+	}
+	strcpy(filepath, prefix);
+	strcat(filepath, filename);
+	printf("%s\n", filepath);
+	
+	struct stat filestat;
+	int res = stat(filepath, &filestat);
+	if (res != 0) {
+		free(filepath);
+		return FILEERROR;
+	}
+	*fileLength = filestat.st_size;
+	// stat has time of last modification, for cache
+	// if file permissions suit
+	
+	int fd = open(filepath, O_RDONLY);
+	if (fd < 0) {
+		free(filepath);
+		return FILEERROR;
+	}
+	*filebuf = malloc(*fileLength);
+	if (*filebuf == NULL) {
+		free(filepath);
+		return MALLOCERROR;
+	}
+	ssize_t bytesRead = read(fd, *filebuf, *fileLength);
+	if (bytesRead != *fileLength) {
+		free(filepath);
+		return FILEERROR;
+	}
+	
+	res = close(fd);
+	if (res != 0) {
+		perror("Error close");
+	}
+	free(filepath);
 	return 0;
 }
 

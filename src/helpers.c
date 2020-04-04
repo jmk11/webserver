@@ -89,7 +89,7 @@ FILE *Fopen(const char *pathname, const char *mode)
         char errorMessage[100];
         snprintf(errorMessage, 100, "Error: Can't open file %s", pathname);
         perror(errorMessage); // dont' want to compile this info into client.
-        exit(FILERROR);
+        exit(FILEERROR);
     }
     return fp;
 }
@@ -422,7 +422,7 @@ unsigned long Lseek(int fd, off_t offset, int whence)
     long result = lseek(fd, offset, whence);
     if (result < 0) {
         perror("Error: in lseeking");
-        exit(FILERROR);
+        exit(FILEERROR);
     }
     return result;
 }

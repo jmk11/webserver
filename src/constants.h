@@ -19,8 +19,10 @@
 #define EVENTFDERROR 12
 #define SIGHANDLERERROR 11
 #define TIMERFDERROR 14
-#define FILERROR 15
+#define FILEERROR 15
+
 #define PERMISSIONSERROR 16
+#define FILENOTFOUND 17
 
 #define SIGINTEXIT 20 // remove?
 // enum??
