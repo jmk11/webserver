@@ -193,7 +193,7 @@ int getFileName(char *request, char **filename)
 		}
 	}*/
 	
-	if (filename[0] == 0) {
+	if ((*filename)[0] == 0) {
 		strncpy(*filename, "index.html", BUFSIZ-methodlen); // check this isn't 1 byte overflow
 	}
 	
