@@ -97,7 +97,9 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 		// end this thread
 		return 1;
 	}
-	printf("Filename: %s", filename);
+	printf("Filename: %s\n", filename);
+	fileNotFound(clientfd);
+	return 0;
 	
 	res = sanitiseRequest(filename);
 	if (res != 0) {
