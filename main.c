@@ -84,9 +84,9 @@ int main(int argc, char **argv)
 
 int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 {
-	char *filename;
-	char *filebuf;
-	char *headersbuf;
+	char *filename = NULL;
+	char *filebuf = NULL;
+	char *headersbuf = NULL;
 	off_t fileLength;
 	unsigned long headersLength;
 	int res;
