@@ -151,16 +151,17 @@ void *Reallocarray(void *ptr, size_t nmemb, size_t size)
 // 0: success
 // 1: not enough space for src
 // !!!! not tested
-int strlcat3(char **dstP, const char *src, unsigned int maxSize)
+int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSize)
 {
-    char *dst = *dstP;
+    maxSize = maxSize - (*dstCur - dstStart);
+    char *dst = *dstCur;
     char *dstEnd = dst + maxSize;
     for (; dst < dstEnd-1 && *dst != 0; dst++) {}
     while (dst < dstEnd-1 && *src != 0) {
         *(dst++) = *(src++);
     }
     *dst = 0;
-    *dstP = dst;
+    *dstCur = dst;
     if (*src != 0) {
         return 1;
     }
@@ -446,4 +447,23 @@ unsigned long Lseek(int fd, off_t offset, int whence)
         exit(FILEERROR);
     }
     return result;
+}
+
+int getFormattedDate(char *buf, unsigned int size)
+{
+    time_t t = time(NULL);
+    if (t == -1) {
+        perror("time() failed");
+        return 1;
+    }
+	struct tm *tm = gmtime(&t);
+    if (tm == NULL) {
+        perror("gmtime() failed");
+        return 1;
+    }
+	size_t bytesWritten = strftime(buf, size, "%a, %d %b %Y %H:%M:%S %Z", tm);
+    if (bytesWritten <= 0) {
+        return 1;
+    }
+    return 0;
 }

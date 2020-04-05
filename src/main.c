@@ -12,6 +12,7 @@
 #include "helpers.h"
 #include "constants.h"
 #include "uid.h"
+#include "headers.h"
 
 
 int buildSocket(unsigned short port);
@@ -21,7 +22,9 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength);
 int getFileName(char *request, char **filename);
 int sanitiseRequest(const char *filename);
 int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength);
-int loadHTTPHeaders(off_t fileLength, char **headersbuf, unsigned long *headersLength);
+int loadHTTPHeaders(off_t fileLength, char *filetype, char **headersbuf, unsigned long *headersLength);
+
+char *getExtension(const char *filename);
 
 int fileNotFound(int clientfd);
 int fileNotAvailable(int clientfd);
@@ -110,12 +113,13 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 	}
 	// won't scale with large file size
 	//free(filename);
+	char *fileextension = getExtension(filename);
 	
-	res = loadHTTPHeaders(fileLength, &headersbuf, &headersLength);
+	res = loadHTTPHeaders(fileLength, fileextension, &headersbuf, &headersLength);
 	res = send(clientfd, headersbuf, headersLength, 0);
+	free(headersbuf);
 	if (res != headersLength) {
 		perror("Error send HTTP headers");
-		free(headersbuf);
 		free(filebuf);
 		return 1;
 	}
@@ -123,11 +127,9 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 	res = send(clientfd, filebuf, fileLength, 0);
 	if (res != fileLength) {
 		perror("Error send file");
-		free(headersbuf);
 		free(filebuf);
 		return 1;
 	}
-	free(headersbuf);
 	free(filebuf);
 	return 0;
 }
@@ -270,8 +272,45 @@ int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength)
 	return 0;
 }
 
-int loadHTTPHeaders(off_t fileLength, char **headersbuf, unsigned long *headersLength) 
+#define OFF_TDIGITS 19
+#define OFF_TSTRMAX (OFF_TDIGITS+1)
+
+
+int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, unsigned long *headersLength) 
 {
+	headers headers;
+	initialiseHeaders(&headers);
+
+	// maximum signed 64 bit number 9,223,372,036,854,775,807 -> 19 digits
+	char contentLength[OFF_TSTRMAX];
+	snprintf(contentLength, OFF_TSTRMAX, "%ld", fileLength);
+	headers.ContentLength.value = contentLength;
+
+	char datebuf[MAXLENGTH];
+	int res = getFormattedDate(datebuf, MAXLENGTH);
+	if (res == 0) {
+		headers.Date.value = datebuf;
+	}
+	// this is a bad way of doing it as all the headers must be in ram in different strings at the same time
+
+	headers.ContentLanguage.value = "en";
+	if (fileExtension != NULL) {
+		if (strcmp(fileExtension, "jpg") == 0) {
+			headers.ContentType.value = "image/jpeg";
+		}
+		else {
+			headers.ContentType.value = "text/html; charset=UTF-8";
+		}
+	}
+	
+	res = produceHeaders("200", headersbuf, &headers);
+	if (res != 0) {
+		free(*headersbuf);
+		return 1;
+	}
+	*headersLength = strlen(*headersbuf);
+
+	/*
 	unsigned int headersMax = 500;
 	*headersbuf = malloc(headersMax);
 	char *headersbufcur = *headersbuf;
@@ -281,7 +320,20 @@ int loadHTTPHeaders(off_t fileLength, char **headersbuf, unsigned long *headersL
 	strlcat3(&headersbufcur, contentLength, headersMax);
 	strlcat3(&headersbufcur, "\r\n", headersMax);
 	*headersLength = headersbufcur - *headersbuf;
+	*/
 	return 0;
+}
+
+char *getExtension(const char *filename) {
+	char *lastdot = NULL;
+	for (; *filename != 0; filename++) {
+		if (*filename == '.') {
+			lastdot = filename;
+		}
+	}
+	return lastdot;
+	// what if it is a symbolic link?
+	// have to get extension of linking file
 }
 
 int fileNotFound(int clientfd) 
@@ -289,8 +341,8 @@ int fileNotFound(int clientfd)
 	unsigned int headersMax = 500;
 	char *headersbuf = malloc(headersMax);
 	char *headersbufcur = headersbuf;
-	strlcat3(&headersbufcur, "HTTP/1.1 404 Not Found\r\n", headersMax);
-	strlcat3(&headersbufcur, "\r\n", headersMax);
+	strlcat3(headersbuf, &headersbufcur, "HTTP/1.1 404 Not Found\r\n", headersMax);
+	strlcat3(headersbuf, &headersbufcur, "\r\n", headersMax);
 	unsigned int headersLength = headersbufcur - headersbuf;
 	int res = send(clientfd, headersbuf, headersLength, 0);
 	free(headersbuf);

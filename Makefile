@@ -5,8 +5,8 @@ CFLAGS	= -Wall -pedantic -g
 .PHONY:	all
 all:	webserver
 
-webserver:			src/main.c src/helpers.c
-					$(CC) $(CFLAGS) -pthread -o webserver src/main.c src/helpers.c
+webserver:			src/main.c src/helpers.c src/headers.c
+					$(CC) $(CFLAGS) -pthread -o webserver src/main.c src/helpers.c src/headers.c
 
 .PHONY: clean
 clean:
