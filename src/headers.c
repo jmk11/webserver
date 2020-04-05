@@ -19,7 +19,9 @@ const struct headers headersBase = {
     .Server = {"Server", NULL},
     .SetCookie = {"Set-Cookie", NULL},
     .Tk = {"Tk", NULL}, // ="N"
-    .Upgrade = {"Upgrade", NULL}
+    .Upgrade = {"Upgrade", NULL},
+    .XFrameOptions = {"X-Frame-Options", NULL},
+    .XContentTypeOptions = {"X-Content-Type-Options", NULL}
 };
 
 int initialiseHeaders(headers *headers) 

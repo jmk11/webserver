@@ -24,6 +24,8 @@ struct headers {
     headerPair SetCookie;
     headerPair Tk; // ="N"
     headerPair Upgrade;
+    headerPair XFrameOptions;
+    headerPair XContentTypeOptions;
 };
 typedef struct headers headers;
 

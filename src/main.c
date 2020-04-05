@@ -294,6 +294,9 @@ int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, un
 	// this is a bad way of doing it as all the headers must be in ram in different strings at the same time
 
 	headers.ContentLanguage.value = "en";
+	headers.XContentTypeOptions.value = "nosniff";
+	headers.XFrameOptions.value = "SAMEORIGIN";
+
 	if (fileExtension != NULL) {
 		if (strcmp(fileExtension, "jpg") == 0) {
 			headers.ContentType.value = "image/jpeg";
