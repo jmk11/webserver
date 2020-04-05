@@ -26,6 +26,7 @@ struct headers {
     headerPair Upgrade;
     headerPair XFrameOptions;
     headerPair XContentTypeOptions;
+    headerPair ContentSecurityPolicy;
 };
 typedef struct headers headers;
 

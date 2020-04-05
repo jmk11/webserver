@@ -21,7 +21,8 @@ const struct headers headersBase = {
     .Tk = {"Tk", NULL}, // ="N"
     .Upgrade = {"Upgrade", NULL},
     .XFrameOptions = {"X-Frame-Options", NULL},
-    .XContentTypeOptions = {"X-Content-Type-Options", NULL}
+    .XContentTypeOptions = {"X-Content-Type-Options", NULL},
+    .ContentSecurityPolicy =  {"Content-Security-Policy", NULL}
 };
 
 int initialiseHeaders(headers *headers) 
