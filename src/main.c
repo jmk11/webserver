@@ -298,7 +298,7 @@ int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, un
 	//securityheaders.com:
 	headers.XContentTypeOptions.value = "nosniff";
 	headers.XFrameOptions.value = "SAMEORIGIN";
-	headers.ContentSecurityPolicy.value = "default-src 'none'";
+	headers.ContentSecurityPolicy.value = "default-src 'self'";
 
 	if (fileExtension != NULL) {
 		if (strcmp(fileExtension, "jpg") == 0) {
