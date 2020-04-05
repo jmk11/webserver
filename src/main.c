@@ -272,6 +272,14 @@ int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength)
 
 int loadHTTPHeaders(off_t fileLength, char **headersbuf, unsigned long *headersLength) 
 {
+	unsigned int headersMax = 500;
+	*headersbuf = malloc(headersMax);
+	strlcat3(*headersbuf, "HTTP/1.1 200 OK\r\n", headersMax);
+	char contentLength[100];
+	snprintf(contentLength, 100, "Content-Length: %lu\r\n", fileLength);
+	strlcat3(*headersbuf, contentLength, headersMax);
+	strlcat3(*headersbuf, "\r\n", headersMax);
+	*headersLength = strlen(*headersbuf);
 	return 0;
 }
 

@@ -148,6 +148,24 @@ void *Reallocarray(void *ptr, size_t nmemb, size_t size)
     return mem;
 }
 
+// 0: success
+// 1: not enough space for src
+// !!!! not tested
+int strlcat3(char *dst, const char *src, unsigned int maxSize)
+{
+    char *dstEnd = dst + maxSize;
+    for (; dst < dstEnd-1 && *dst != 0; dst++) {}
+    while (dst < dstEnd-1 && *src != 0) {
+        *(dst++) = *(src++);
+    }
+    *dst = 0;
+    if (*src != 0) {
+        return 1;
+    }
+    return 0;
+}
+
+
 // THIS COMMENT IS FOR AN OLD VERSION
 // Always null-terminates UNLESS 2
 // Final string size will be AT MOST n bytes, INCLUDING null byte
@@ -212,6 +230,7 @@ void Pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start
         exit(THREADERROR);
     }
 }
+
 
 void Sem_init(sem_t *sem, int pshared, unsigned int value)
 {
