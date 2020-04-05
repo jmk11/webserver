@@ -13,11 +13,12 @@
 #include "constants.h"
 #include "uid.h"
 #include "headers.h"
+#include "custom.h"
 
 
 int buildSocket(unsigned short port);
 int dropPermissions(unsigned short goaluid);
-int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength);
+int handleRequest(int clientfd, char *requestbuf);//, ssize_t requestLength);
 
 int getFileName(char *request, char **filename);
 int sanitiseRequest(const char *filename);
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
 			else {
 				requestbuf[requestLen] = 0;
 				printf("%s\n", requestbuf);
-				handleRequest(clientfd, requestbuf, requestLen);
+				handleRequest(clientfd, requestbuf);
 			}
 			close(clientfd);
 			// what do if can't close client socket?
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
 	return 0;	
 }
 
-int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
+int handleRequest(int clientfd, char *requestbuf)//, ssize_t requestLength)
 {
 	char *filename = NULL;
 	char *filebuf = NULL;
@@ -89,6 +90,10 @@ int handleRequest(int clientfd, char *requestbuf, ssize_t requestLength)
 	off_t fileLength = 0;
 	unsigned long headersLength = 0;
 	int res;
+
+	struct requestHeaders requestHeaders;
+	initialiseRequestHeaders(&requestHeaders);
+	parseHeaders(&requestHeaders, requestbuf);
 	
 	res = getFileName(requestbuf, &filename);
 	if (res != 0) {
@@ -278,8 +283,8 @@ int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength)
 
 int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, unsigned long *headersLength) 
 {
-	headers headers;
-	initialiseHeaders(&headers);
+	responseHeaders headers;
+	initialiseResponseHeaders(&headers);
 
 	// maximum signed 64 bit number 9,223,372,036,854,775,807 -> 19 digits
 	char contentLength[OFF_TSTRMAX];
@@ -293,15 +298,13 @@ int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, un
 	}
 	// this is a bad way of doing it as all the headers must be in ram in different strings at the same time
 
-	headers.ContentLanguage.value = "en";
-
-	//securityheaders.com:
-	headers.XContentTypeOptions.value = "nosniff";
-	headers.XFrameOptions.value = "SAMEORIGIN";
-	headers.ContentSecurityPolicy.value = "default-src 'self'";
+	addMyHeaders(&headers);
 
 	if (fileExtension != NULL) {
 		if (strcmp(fileExtension, "jpg") == 0) {
+			headers.ContentType.value = "image/jpeg";
+		}
+		else if (strcmp(fileExtension, "ico") == 0) {
 			headers.ContentType.value = "image/jpeg";
 		}
 		else {
@@ -357,6 +360,7 @@ int fileNotFound(int clientfd)
 		return 1;
 	}
 
+	
 	char *response = "404";
 	res = send(clientfd, response, strlen(response), 0);
 	if (res != strlen(response)) {

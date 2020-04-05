@@ -2,36 +2,24 @@
 
 #include "headers.h"
 #include "helpers.h"
+#include "headersbase.h"
 
 #define HEADERSMAX 1024
 
-const struct headers headersBase = {
-    .Allow = {"Allow", NULL}, 
-    .ContentLength = {"Content-Length", NULL},
-    .ContentLanguage = {"Content-Language", NULL},
-    .ContentLocation = {"Content-Location", NULL},
-    .ContentMD5 = {"Content-MD5", NULL},
-    .ContentType = {"Content-Type", NULL},
-    .Date = {"Date", NULL},
-    .LastModified = {"Last-Modified", NULL},
-    .Location = {"Location", NULL},
-    .RetryAfter = {"Retry-After", NULL},
-    .Server = {"Server", NULL},
-    .SetCookie = {"Set-Cookie", NULL},
-    .Tk = {"Tk", NULL}, // ="N"
-    .Upgrade = {"Upgrade", NULL},
-    .XFrameOptions = {"X-Frame-Options", NULL},
-    .XContentTypeOptions = {"X-Content-Type-Options", NULL},
-    .ContentSecurityPolicy =  {"Content-Security-Policy", NULL}
-};
 
-int initialiseHeaders(headers *headers) 
+int initialiseResponseHeaders(responseHeaders *headers) 
 {
-    *headers = headersBase;
+    *headers = responseHeadersBase;
     return 0;
 }
 
-int produceHeaders(char *statusCode, char **headersstr, const headers *headers)
+int initialiseRequestHeaders(requestHeaders *headers) 
+{
+    *headers = requestHeadersBase;
+    return 0;
+}
+
+int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *headers)
 {
     // check that doesn't pass headersmax. if so, realloc
     *headersstr = malloc(HEADERSMAX);
@@ -50,7 +38,7 @@ int produceHeaders(char *statusCode, char **headersstr, const headers *headers)
 
     // I'm relying on struct layout which you aren't supposed to do but I want to try this
     headerPair *pair = headers;
-    unsigned int numPairs = sizeof(struct headers) / sizeof(headerPair);
+    unsigned int numPairs = sizeof(struct responseHeaders) / sizeof(headerPair);
     for (unsigned int i = 0; i < numPairs; i++, pair++) {
         if (pair->value != NULL) {
             res = strlcat3(*headersstr, &headersstrcur, pair->label, HEADERSMAX);
@@ -67,6 +55,11 @@ int produceHeaders(char *statusCode, char **headersstr, const headers *headers)
     if (res != 0) { free(*headersstr); return 1; }
     printf("headers: %s\n", *headersstr);    
 
+    return 0;
+}
+
+int parseHeaders(requestHeaders *headers, char *headersstr)
+{
     return 0;
 }
 

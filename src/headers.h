@@ -9,7 +9,7 @@ struct headerPair {
 };
 typedef struct headerPair headerPair;
 
-struct headers {
+struct responseHeaders {
     headerPair Allow;
     headerPair ContentLength;
     headerPair ContentLanguage;
@@ -28,13 +28,50 @@ struct headers {
     headerPair XContentTypeOptions;
     headerPair ContentSecurityPolicy;
 };
-typedef struct headers headers;
+typedef struct responseHeaders responseHeaders;
 
 // structure to map value to statusCode
 
+enum Method { 
+    INIT,
+    GET,
+    POST,
+    PUT,
+    PATH,
+    DELETE,
+    COPY,
+    HEAD,
+    OPTIONS,
+    LINK,
+    UNLINK,
+    PURGE,
+    LOCK,
+    UNLOCK,
+    PROPFIND,
+    VIEW
+};
 
-int initialiseHeaders(headers *headers);
-int produceHeaders(char *statusCode, char **headersstr, const headers *headers);
+struct requestHeaders {
+    //char *method;
+    enum Method method;
+    char *resource;
+    char *Host;
+    char *UserAgent;
+    char *Accept;
+    char *AcceptLanguage;
+    char *AcceptEncoding;
+    char *DNT;
+    char *Connection;
+    char *UpgradeInsecureRequests;
+};
+typedef struct requestHeaders requestHeaders;
+
+int initialiseResponseHeaders(responseHeaders *headers);
+int initialiseRequestHeaders(requestHeaders *headers);
+int parseHeaders(requestHeaders *headers, char *headersstr);
+int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *headers);
+
+
 
 /*
 struct headerValues {
