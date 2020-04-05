@@ -337,7 +337,7 @@ char *getExtension(const char *filename) {
 			lastdot = filename;
 		}
 	}
-	return lastdot;
+	return lastdot+1;
 	// what if it is a symbolic link?
 	// have to get extension of linking file
 }
