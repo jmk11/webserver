@@ -151,14 +151,16 @@ void *Reallocarray(void *ptr, size_t nmemb, size_t size)
 // 0: success
 // 1: not enough space for src
 // !!!! not tested
-int strlcat3(char *dst, const char *src, unsigned int maxSize)
+int strlcat3(char **dstP, const char *src, unsigned int maxSize)
 {
+    char *dst = *dstP;
     char *dstEnd = dst + maxSize;
     for (; dst < dstEnd-1 && *dst != 0; dst++) {}
     while (dst < dstEnd-1 && *src != 0) {
         *(dst++) = *(src++);
     }
     *dst = 0;
+    *dstP = dst;
     if (*src != 0) {
         return 1;
     }

@@ -70,6 +70,6 @@ void *Reallocarray(void *ptr, size_t nmemb, size_t size);
 
 unsigned long Lseek(int fd, off_t offset, int whence);
 
-int strlcat3(char *dst, const char *src, unsigned int maxSize);
+int strlcat3(char **dstP, const char *src, unsigned int maxSize);
 
 #endif //PROJECT_HELPERS_H

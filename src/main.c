@@ -274,19 +274,33 @@ int loadHTTPHeaders(off_t fileLength, char **headersbuf, unsigned long *headersL
 {
 	unsigned int headersMax = 500;
 	*headersbuf = malloc(headersMax);
-	strlcat3(*headersbuf, "HTTP/1.1 200 OK\r\n", headersMax);
+	char *headersbufcur = *headersbuf;
+	strlcat3(&headersbufcur, "HTTP/1.1 200 OK\r\n", headersMax);
 	char contentLength[100];
 	snprintf(contentLength, 100, "Content-Length: %lu\r\n", fileLength);
-	strlcat3(*headersbuf, contentLength, headersMax);
-	strlcat3(*headersbuf, "\r\n", headersMax);
-	*headersLength = strlen(*headersbuf);
+	strlcat3(&headersbufcur, contentLength, headersMax);
+	strlcat3(&headersbufcur, "\r\n", headersMax);
+	*headersLength = headersbufcur - *headersbuf;
 	return 0;
 }
 
 int fileNotFound(int clientfd) 
 {
+	unsigned int headersMax = 500;
+	char *headersbuf = malloc(headersMax);
+	char *headersbufcur = headersbuf;
+	strlcat3(&headersbufcur, "HTTP/1.1 404 Not Found\r\n", headersMax);
+	strlcat3(&headersbufcur, "\r\n", headersMax);
+	unsigned int headersLength = headersbufcur - headersbuf;
+	int res = send(clientfd, headersbuf, headersLength, 0);
+	free(headersbuf);
+	if (res != headersLength) {
+		perror("Error send 404 header");
+		return 1;
+	}
+
 	char *response = "404";
-	int res = send(clientfd, response, strlen(response), 0);
+	res = send(clientfd, response, strlen(response), 0);
 	if (res != strlen(response)) {
 		perror("Error send file");
 		return 1;
