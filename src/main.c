@@ -15,10 +15,9 @@
 #include "headers.h"
 #include "custom.h"
 #include "ssl.h"
+#include "common.h"
 
 
-int buildSocket(unsigned short port);
-int dropPermissions(unsigned short goaluid);
 int handleRequest(int clientfd, char *requestbuf, SSL *ssl);//, ssize_t requestLength);
 
 int getFileName(char *request, char **filename);
@@ -28,8 +27,6 @@ int loadHTTPHeaders(off_t fileLength, char *filetype, char **headersbuf, unsigne
 
 char *getExtension(const char *filename);
 int handleConnection(int clientfd, SSL_CTX *ctx);
-
-void logSource(struct sockaddr_in addrStruct);
 
 int fileNotFound(int clientfd);
 int fileNotAvailable(int clientfd);
@@ -56,7 +53,6 @@ int main(int argc, char **argv)
 	int serverfd = buildSocket(port);
 	
 	// after binding port 80, can drop permissions
-	dropPermissions(UID);
 
 	//int res;
 	struct sockaddr_in clientAddr;
@@ -71,7 +67,7 @@ int main(int argc, char **argv)
 		if (clientfd < 0) {
 			perror("accept clientfd < 0");
 		}
-		logSource(clientAddr);
+		logSource(clientAddr, NULL);
 		handleConnection(clientfd, ctx);
 		close(clientfd);
 		// what do if can't close client socket?
@@ -117,21 +113,6 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
 	return retval;
-}
-
-void logSource(struct sockaddr_in addrStruct)
-{
-	// from a 1521 sample code
-	char addrstr[16];
-	in_addr_t addrNum = ntohl (addrStruct.sin_addr.s_addr);
-	snprintf (
-		addrstr, 16, "%u.%u.%u.%u",
-		addrNum >> 24 & 0xff,
-		addrNum >> 16 & 0xff,
-		addrNum >>  8 & 0xff,
-		addrNum       & 0xff
-	);
-	printf ("Connection from %s:%hu\n", addrstr, addrStruct.sin_port);
 }
 
 int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLength)
@@ -192,89 +173,6 @@ int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLe
 		return 1;
 	}
 	free(filebuf);
-	return 0;
-}
-
-int dropPermissions(unsigned short goaluid) {
-	printf("Dropping permissions after binding...\n");
-	setuid(goaluid);
-	printf("uid after drop: %d %d\n", getuid(), geteuid());
-	setuid(0);
-	printf("uid fter setuid: %d %d\n", getuid(), geteuid());
-	seteuid(0);
-	printf("uid after seteuid: %d %d\n", getuid(), geteuid());
-	if (getuid() != goaluid || geteuid() != goaluid) {
-		exit(PERMISSIONSERROR);
-	}
-	return 0;
-	// does this check introduce security problems by calling setuid and seteuid 0?
-}
-
-int buildSocket(unsigned short port) 
-{
-	struct sockaddr_in serverAddr;
-	memset(&serverAddr, 0, sizeof(serverAddr));
-	(serverAddr).sin_family = AF_INET;
-	serverAddr.sin_port = htons(port);
-	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-	int sockfd = Socket(AF_INET, SOCK_STREAM, 0);
-	Bind(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
-	Listen(sockfd, 5);
-	return sockfd;
-}
-
-// request is null terminated within BUFSIZ
-// edits request to null terminate filename
-// and returns pointer to where filename starts
-int getFileName(char *request, char **filename) 
-{
-	unsigned int i;
-	char *method = "GET /";
-	unsigned int methodlen = strlen(method);
-	if (strlen(request) < methodlen) {
-		return 1;
-	}
-	for (i = 0; i < methodlen; i++) {
-		if (request[i] != method[i]) {
-			return 1;
-		}
-	}
-	// now we are pointing at char after /
-	// could be null
-	*filename = &(request[i]);
-	// turn first space into null:
-	while (request[i] != ' ' && request[i] != 0) { i++; }
-	request[i] = 0;
-	/*
-	for (; request[i] != 0; i++) {
-		if (request[i] == ' ') { 
-			request[i] = 0; 
-			break; 
-		}
-	}*/
-	
-	if ((*filename)[0] == 0) {
-		strncpy(*filename, "index.html", BUFSIZ-methodlen); // check this isn't 1 byte overflow
-	}
-	
-	/*
-	int nitems = sscanf(request, "GET %""499s", request1);
-    if (nitems != 1)
-    {
-    	//ferror()
-    	perror("Error sscanf");
-        return 1;
-    }
-
-    // stupid scanf skips leading whitespaces
-    // so if no arg, I just get "HTTP......"
-    // so I'm including the / and if there is an arg it will be
-    // /word,
-    // otherwise "/\0"
-    *filename = &(request1[1]);
-    */
-    
 	return 0;
 }
 

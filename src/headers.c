@@ -99,6 +99,60 @@ int parseHeaders(requestHeaders *headers, char *headersstr)
     return 0;
 }
 
+// request is null terminated within BUFSIZ
+// edits request to null terminate filename
+// and returns pointer to where filename starts
+int getFileName(char *request, char **filename) 
+{
+	unsigned int i;
+	char *method = "GET /";
+	unsigned int methodlen = strlen(method);
+	if (strlen(request) < methodlen) {
+		return 1;
+	}
+	for (i = 0; i < methodlen; i++) {
+		if (request[i] != method[i]) {
+			return 1;
+		}
+	}
+	// now we are pointing at char after /
+	// could be null
+	*filename = &(request[i]);
+	// turn first space into null:
+	while (request[i] != ' ' && request[i] != 0) { i++; }
+	request[i] = 0;
+	/*
+	for (; request[i] != 0; i++) {
+		if (request[i] == ' ') { 
+			request[i] = 0; 
+			break; 
+		}
+	}*/
+	
+	if ((*filename)[0] == 0) {
+		strncpy(*filename, "index.html", BUFSIZ-methodlen); // check this isn't 1 byte overflow
+	}
+	
+	/*
+	int nitems = sscanf(request, "GET %""499s", request1);
+    if (nitems != 1)
+    {
+    	//ferror()
+    	perror("Error sscanf");
+        return 1;
+    }
+
+    // stupid scanf skips leading whitespaces
+    // so if no arg, I just get "HTTP......"
+    // so I'm including the / and if there is an arg it will be
+    // /word,
+    // otherwise "/\0"
+    *filename = &(request1[1]);
+    */
+    
+	return 0;
+}
+
 void freeHeadersstr(char *headersstr) {
     free(headersstr);
 }
