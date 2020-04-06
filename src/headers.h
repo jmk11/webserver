@@ -9,6 +9,9 @@ struct headerPair {
 };
 typedef struct headerPair headerPair;
 
+// I think this strcut system was excessive, it's easy enough just to add a header manually using "Host: example.com"
+// Could just have a function to append to headers string
+
 struct responseHeaders {
     headerPair Allow;
     headerPair ContentLength;
@@ -33,7 +36,7 @@ typedef struct responseHeaders responseHeaders;
 // structure to map value to statusCode
 
 enum Method { 
-    INIT,
+    METHODINIT,
     GET,
     POST,
     PUT,
@@ -51,6 +54,19 @@ enum Method {
     VIEW
 };
 
+enum DNT {
+    DNTINIT,
+    DNT1,
+    DNT0
+};
+
+enum UIR {
+    UIRINIT,
+    UIR1
+};
+
+// two INITS in different enums.. both at 0 but seems bad
+
 struct requestHeaders {
     //char *method;
     enum Method method;
@@ -60,9 +76,12 @@ struct requestHeaders {
     char *Accept;
     char *AcceptLanguage;
     char *AcceptEncoding;
-    char *DNT;
+    //char *DNT;
+    enum DNT DNT;
     char *Connection;
-    char *UpgradeInsecureRequests;
+    //char *UpgradeInsecureRequests;
+    enum UIR UpgradeInsecureRequests;
+    char *Referer;
 };
 typedef struct requestHeaders requestHeaders;
 

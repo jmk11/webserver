@@ -24,14 +24,17 @@ const struct responseHeaders responseHeadersBase = {
 
 const struct requestHeaders requestHeadersBase = {
     //.method = NULL,
-    .method = INIT,
+    .method = METHODINIT,
     .resource = NULL,
     .Host = NULL,
     .UserAgent = NULL,
     .Accept = NULL,
     .AcceptLanguage = NULL,
     .AcceptEncoding = NULL,
-    .DNT = NULL,
+    //.DNT = NULL,
+    .DNT = DNTINIT,
     .Connection = NULL,
-    .UpgradeInsecureRequests = NULL
+    //.UpgradeInsecureRequests = NULL,
+    .UpgradeInsecureRequests = UIRINIT,
+    .Referer = NULL
 };

@@ -35,6 +35,8 @@ int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *h
     if (res != 0) { free(*headersstr); return 1; }
     res = strlcat3(*headersstr, &headersstrcur, " OK\r\n", HEADERSMAX); // obv change this
     if (res != 0) { free(*headersstr); return 1; }
+    /*int bytesWritten = snprintf(*headersstr, HEADERSMAX, "HTTP/1.1 %s OK\r\n", statusCode);
+    char *headersstrcur = *headersstr + bytesWritten;*/
 
     // I'm relying on struct layout which you aren't supposed to do but I want to try this
     headerPair *pair = headers;
@@ -49,6 +51,8 @@ int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *h
             if (res != 0) { free(*headersstr); return 1; }
             res = strlcat3(*headersstr, &headersstrcur, "\r\n", HEADERSMAX);
             if (res != 0) { free(*headersstr); return 1; }
+            // can do this with one snprintf, but I would need to calculate the total number of bytes
+            // I intend to write so I can know if it is less
         }
     }
     res = strlcat3(*headersstr, &headersstrcur, "\r\n", HEADERSMAX);
@@ -60,6 +64,26 @@ int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *h
 
 int parseHeaders(requestHeaders *headers, char *headersstr)
 {
+    // first line: replace first and second spaces with null byte
+    // following lines: replace \r with null byte
+
+    // resource:
+    /*
+    res = getFileName(requestbuf, &filename);
+	if (res != 0) {
+		fileNotFound(clientfd);
+		// end this thread
+		return 1;
+	}
+	
+	res = sanitiseRequest(filename);
+	if (res != 0) {
+		fileNotFound(clientfd);
+		//free(filename);
+		return 1;
+	}
+	printf("Filename: %s\n", filename);
+    */
     return 0;
 }
 

@@ -14,11 +14,12 @@
 #include "uid.h"
 #include "headers.h"
 #include "custom.h"
+#include "openssl.h"
 
 
 int buildSocket(unsigned short port);
 int dropPermissions(unsigned short goaluid);
-int handleRequest(int clientfd, char *requestbuf);//, ssize_t requestLength);
+int handleRequest(int clientfd, char *requestbuf, SSL *ssl);//, ssize_t requestLength);
 
 int getFileName(char *request, char **filename);
 int sanitiseRequest(const char *filename);
@@ -32,6 +33,14 @@ int fileNotAvailable(int clientfd);
 
 int main(int argc, char **argv)
 {
+	// copied
+	SSL_CTX *ctx;
+	init_openssl();
+	ctx = create_context();
+	configure_context(ctx);
+	// end copied
+
+
 	printf("uid at start: %d\n", getuid());
 	
 	unsigned short port;
@@ -63,15 +72,31 @@ int main(int argc, char **argv)
 		if (clientfd < 0) {
 			perror("accept clientfd < 0");
 		}
+		// copied
+		SSL *ssl = SSL_new(ctx);
+		SSL_set_fd(ssl, clientfd);
+		if (SSL_accept(ssl) <= 0) {
+			ERR_print_errors_fp(stderr);
+		}
+		/*SSL_set_accept_state(ssl);
+		if (SSL_do_handshake(ssl) <= 0) {
+			ERR_print_errors_fp(stderr);
+		}*/
 		else {
-			requestLen = recv(clientfd, requestbuf, BUFSIZ-1, 0);
+			/*requestLen = recv(clientfd, requestbuf, BUFSIZ-1, 0);
 			if (requestLen < 0) {
 				perror("Error recv");
+			}*/
+			requestLen = SSL_read(ssl, requestbuf, BUFSIZ-1);
+			if (requestLen <= 0) {
+				fprintf(stderr, "SSL_read error\n");
 			}
 			else {
 				requestbuf[requestLen] = 0;
 				printf("%s\n", requestbuf);
-				handleRequest(clientfd, requestbuf);
+				handleRequest(clientfd, requestbuf, ssl);
+				SSL_shutdown(ssl);
+				SSL_free(ssl);
 			}
 			close(clientfd);
 			// what do if can't close client socket?
@@ -79,10 +104,12 @@ int main(int argc, char **argv)
 	}
 	
 	Close(serverfd);
+	SSL_CTX_free(ctx);
+	cleanup_openssl();
 	return 0;	
 }
 
-int handleRequest(int clientfd, char *requestbuf)//, ssize_t requestLength)
+int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLength)
 {
 	char *filename = NULL;
 	char *filebuf = NULL;
@@ -121,7 +148,8 @@ int handleRequest(int clientfd, char *requestbuf)//, ssize_t requestLength)
 	char *fileextension = getExtension(filename);
 	
 	res = loadHTTPHeaders(fileLength, fileextension, &headersbuf, &headersLength);
-	res = send(clientfd, headersbuf, headersLength, 0);
+	//res = send(clientfd, headersbuf, headersLength, 0);
+	res = SSL_write(ssl, headersbuf, headersLength);
 	free(headersbuf);
 	if (res != headersLength) {
 		perror("Error send HTTP headers");
@@ -129,7 +157,8 @@ int handleRequest(int clientfd, char *requestbuf)//, ssize_t requestLength)
 		return 1;
 	}
 	
-	res = send(clientfd, filebuf, fileLength, 0);
+	//res = send(clientfd, filebuf, fileLength, 0);
+	res = SSL_write(ssl, filebuf, fileLength);
 	if (res != fileLength) {
 		perror("Error send file");
 		free(filebuf);
