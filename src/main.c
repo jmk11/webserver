@@ -364,6 +364,9 @@ int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, un
 		else if (strcmp(fileExtension, "ico") == 0) {
 			headers.ContentType.value = "image/jpeg";
 		}
+		else if (strcmp(fileExtension, "js") == 0) {
+			headers.ContentType.value = "text/javascript";
+		}
 		else {
 			headers.ContentType.value = "text/html; charset=UTF-8";
 		}
