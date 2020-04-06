@@ -15,6 +15,7 @@
 #define DOMAINSIZE 100
 #define REQSIZE 300
 #define DOMAINFILE "config/domain.txt"
+#define LOGFILE "logs/HTTPlog.txt"
 
 int readDomain(char domain[DOMAINSIZE]);
 int handleConnection(int clientfd, const char *domain);
@@ -50,11 +51,19 @@ int main(int argc, char **argv)
 	//char requestbuf[REQSIZE];
 	//char *nullbyte = "\0";
 	//char *resource;
+	bool fileLogging = TRUE;
 
 	int res = readDomain(httpsdomain);
 	if (res != 0) {
 		fprintf(stderr, "Can't read domain name from config file. Exiting\n");
 		return 1;
+	}
+
+	int logfd = open(LOGFILE, O_WRONLY | O_CREAT | O_APPEND, 0660);
+	if (logfd < 0) {
+		perror("Cannot open log file for writing");
+		fprintf(stderr, "Continuing execution without logging to file..");
+		fileLogging = FALSE;
 	}
 
 	printf("Entering accept loop..\n");
@@ -65,13 +74,22 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Continuing to next loop...\n");
 		}
 		else {
-			logSource(clientAddr, "HTTP ");
+			printSource(clientAddr, "HTTP ");
+			if (fileLogging) {
+				logSource(logfd, clientAddr);
+			}
 			handleConnection(clientfd, httpsdomain);
 		}
 
+		fsync(logfd);
 		close(clientfd);
 		// what do if can't close client socket?
 	}
+	
+	// I think it's a problem that the log file doesn't get closed?
+	// Also it is being created with really weird permissions...
+	close(logfd);
+	close(serverfd);
 	return 0;	
 }
 
@@ -109,13 +127,13 @@ int readDomain(char domain[DOMAINSIZE])
 {
 	int fd = open(DOMAINFILE, O_RDONLY);
     if (fd < 0) {
-        perror("Can't open domain config file\n");
+        perror("Can't open domain config file");
         return 1;
     }
     // obviously deal with size etc.
     int bytesRead = read(fd, domain, DOMAINSIZE-1);
     if (bytesRead <= 0) {
-        perror("Can't read comain config file");
+        perror("Can't read domain config file");
         return 1;
     }
 	domain[bytesRead] = 0;

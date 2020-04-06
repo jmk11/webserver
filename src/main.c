@@ -17,6 +17,9 @@
 #include "ssl.h"
 #include "common.h"
 
+#define LOGFILE "logs/serverlog.txt"
+bool fileLogging = TRUE;
+
 
 int handleRequest(SSL *ssl, char *requestbuf);//, ssize_t requestLength);
 
@@ -61,6 +64,13 @@ int main(int argc, char **argv)
 	int clientfd;
 	//char reqFileName[MAXPATH];
 	//char *filebuf;
+
+	int logfd = open(LOGFILE, O_WRONLY | O_CREAT | O_APPEND, 0660);
+	if (logfd < 0) {
+		perror("Cannot open log file for writing");
+		fprintf(stderr, "Continuing execution without logging to file..");
+		fileLogging = FALSE;
+	}
 	
 	printf("Entering accept loop..\n");
 	while (1) {
@@ -69,13 +79,15 @@ int main(int argc, char **argv)
 			perror("accept clientfd < 0");
 		}
 		else {
-			logSource(clientAddr, NULL);
+			printSource(clientAddr, NULL);
+			if (fileLogging) { logSource(logfd, clientAddr); }
 			handleConnection(clientfd, ctx);
 			close(clientfd);
 			// what do if can't close client socket?
 		}
 	}
 	
+	Close(logfd);
 	Close(serverfd);
 	cleanssl(ctx);
 	return 0;	
