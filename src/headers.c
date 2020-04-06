@@ -19,6 +19,18 @@ int initialiseRequestHeaders(requestHeaders *headers)
     return 0;
 }
 
+/*
+int addHeader(const char *header, char *headersstr, unsigned int headersstrlength)
+{
+    char *headersstrcur = headersstr;
+    int res = strlcat3(headersstr, &headersstrcur, header, headersstrlength);
+    if (res != 0) { return 1; }
+    int res = strlcat3(headersstr, &headersstrcur, "\r\n", headersstrlength);
+    if (res != 0) { return 1; }
+    return 0;
+    // could just do an snprintf on headersstrcur with remaining length
+}*/
+
 int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *headers)
 {
     // check that doesn't pass headersmax. if so, realloc
