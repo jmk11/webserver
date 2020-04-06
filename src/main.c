@@ -27,19 +27,16 @@ int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength);
 int loadHTTPHeaders(off_t fileLength, char *filetype, char **headersbuf, unsigned long *headersLength);
 
 char *getExtension(const char *filename);
+int handleConnection(int clientfd, SSL_CTX *ctx);
+
+void logSource(struct sockaddr_in addrStruct);
 
 int fileNotFound(int clientfd);
 int fileNotAvailable(int clientfd);
 
 int main(int argc, char **argv)
 {
-	// copied
-	SSL_CTX *ctx;
-	init_openssl();
-	ctx = create_context();
-	configure_context(ctx);
-	// end copied
-
+	SSL_CTX *ctx = setupssl();
 
 	printf("uid at start: %d\n", getuid());
 	
@@ -62,8 +59,6 @@ int main(int argc, char **argv)
 	socklen_t clientAddrLen = sizeof(clientAddr);
 	int clientfd;
 	//char reqFileName[MAXPATH];
-	char requestbuf[BUFSIZ];
-	ssize_t requestLen;
 	//char *filebuf;
 	
 	printf("Entering accept loop..\n");
@@ -72,45 +67,73 @@ int main(int argc, char **argv)
 		if (clientfd < 0) {
 			perror("accept clientfd < 0");
 		}
-		// copied
-		SSL *ssl = SSL_new(ctx);
-		SSL_set_fd(ssl, clientfd);
-		if (SSL_accept(ssl) <= 0) {
-			ERR_print_errors_fp(stderr);
-		}
-		/*SSL_set_accept_state(ssl);
-		if (SSL_do_handshake(ssl) <= 0) {
-			ERR_print_errors_fp(stderr);
-		}*/
-		else {
-			/*requestLen = recv(clientfd, requestbuf, BUFSIZ-1, 0);
-			if (requestLen < 0) {
-				perror("Error recv");
-			}*/
-			requestLen = SSL_read(ssl, requestbuf, BUFSIZ-1);
-			if (requestLen <= 0) {
-				fprintf(stderr, "SSL_read error\n");
-			}
-			else {
-				requestbuf[requestLen] = 0;
-				printf("%s\n", requestbuf);
-				handleRequest(clientfd, requestbuf, ssl);
-				SSL_shutdown(ssl);
-				SSL_free(ssl);
-			}
-			close(clientfd);
-			// what do if can't close client socket?
-		}
+		logSource(clientAddr);
+		handleConnection(clientfd, ctx);
+		close(clientfd);
+		// what do if can't close client socket?
 	}
 	
 	Close(serverfd);
-	SSL_CTX_free(ctx);
-	cleanup_openssl();
+	cleanssl(ctx);
 	return 0;	
+}
+
+int handleConnection(int clientfd, SSL_CTX *ctx) {
+	char requestbuf[BUFSIZ];
+	ssize_t requestLen;
+	int retval = 0;
+
+	// copied
+	SSL *ssl = SSL_new(ctx);
+	SSL_set_fd(ssl, clientfd);
+	if (SSL_accept(ssl) <= 0) {
+		ERR_print_errors_fp(stderr);
+		retval = 1;
+	}
+	/*SSL_set_accept_state(ssl);
+	if (SSL_do_handshake(ssl) <= 0) {
+		ERR_print_errors_fp(stderr);
+	}*/
+	else {
+		/*requestLen = recv(clientfd, requestbuf, BUFSIZ-1, 0);
+		if (requestLen < 0) {
+			perror("Error recv");
+		}*/
+		requestLen = SSL_read(ssl, requestbuf, BUFSIZ-1);
+		if (requestLen <= 0) {
+			fprintf(stderr, "SSL_read error\n");
+		}
+		else {
+			requestbuf[requestLen] = 0;
+			printf("%s\n", requestbuf);
+			int res = handleRequest(clientfd, requestbuf, ssl);
+			retval = res;
+		}
+	}
+	SSL_shutdown(ssl);
+	SSL_free(ssl);
+	return retval;
+}
+
+void logSource(struct sockaddr_in addrStruct)
+{
+	// from a 1521 sample code
+	char addrstr[16];
+	in_addr_t addrNum = ntohl (addrStruct.sin_addr.s_addr);
+	snprintf (
+		addrstr, 16, "%u.%u.%u.%u",
+		addrNum >> 24 & 0xff,
+		addrNum >> 16 & 0xff,
+		addrNum >>  8 & 0xff,
+		addrNum       & 0xff
+	);
+	printf ("Connection from %s:%hu\n", addrstr, addrStruct.sin_port);
 }
 
 int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLength)
 {
+	printf("Response:\n");
+
 	char *filename = NULL;
 	char *filebuf = NULL;
 	char *headersbuf = NULL;
@@ -270,7 +293,7 @@ int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength)
 	}
 	strcpy(filepath, prefix);
 	strcat(filepath, filename);
-	printf("%s\n\n\n", filepath);
+	printf("Filepath: %s\n", filepath);
 	
 	struct stat filestat;
 	int res = stat(filepath, &filestat);

@@ -2,6 +2,21 @@
 
 #include "openssl.h"
 
+
+SSL_CTX *setupssl()
+{
+    init_openssl();
+	SSL_CTX *ctx = create_context();
+	configure_context(ctx);
+    return ctx;
+}
+
+void cleanssl(SSL_CTX *ctx)
+{
+    SSL_CTX_free(ctx);
+	cleanup_openssl();
+}
+
 // these functions copied from 
 // https://wiki.openssl.org/index.php/Simple_TLS_Server
 

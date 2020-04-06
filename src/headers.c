@@ -57,7 +57,7 @@ int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *h
     }
     res = strlcat3(*headersstr, &headersstrcur, "\r\n", HEADERSMAX);
     if (res != 0) { free(*headersstr); return 1; }
-    printf("headers: %s\n", *headersstr);    
+    printf("\n%s\n", *headersstr);    
 
     return 0;
 }
