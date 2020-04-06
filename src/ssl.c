@@ -87,6 +87,11 @@ int configure_context(SSL_CTX *ctx)
 	    return 1;
     }
 
+    if (SSL_CTX_check_private_key(ctx) != 1) {
+        // I'm not quite sure how this function works
+        return 1;
+    }
+
     return 0;
 }
 

@@ -18,7 +18,7 @@
 #include "common.h"
 
 
-int handleRequest(int clientfd, char *requestbuf, SSL *ssl);//, ssize_t requestLength);
+int handleRequest(SSL *ssl, char *requestbuf);//, ssize_t requestLength);
 
 int getFileName(char *request, char **filename);
 int sanitiseRequest(const char *filename);
@@ -28,8 +28,8 @@ int loadHTTPHeaders(off_t fileLength, char *filetype, char **headersbuf, unsigne
 char *getExtension(const char *filename);
 int handleConnection(int clientfd, SSL_CTX *ctx);
 
-int fileNotFound(int clientfd);
-int fileNotAvailable(int clientfd);
+int fileNotFound(SSL *ssl);
+int fileNotAvailable(SSL *ssl);
 
 int main(int argc, char **argv)
 {
@@ -46,13 +46,14 @@ int main(int argc, char **argv)
 		port = getPort(argv[1]);
 	} 
 	else {
-		port = 80;
+		port = 443;
 	}
 	printf("Using port number %hu\n", port);
 	
 	int serverfd = buildSocket(port);
 	
 	// after binding port 80, can drop permissions
+	dropPermissions(UID);
 
 	//int res;
 	struct sockaddr_in clientAddr;
@@ -90,6 +91,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 		ERR_print_errors_fp(stderr);
 		retval = 1;
 	}
+	// end copied
 	/*SSL_set_accept_state(ssl);
 	if (SSL_do_handshake(ssl) <= 0) {
 		ERR_print_errors_fp(stderr);
@@ -106,7 +108,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 		else {
 			requestbuf[requestLen] = 0;
 			printf("%s\n", requestbuf);
-			int res = handleRequest(clientfd, requestbuf, ssl);
+			int res = handleRequest(ssl, requestbuf);
 			retval = res;
 		}
 	}
@@ -115,7 +117,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 	return retval;
 }
 
-int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLength)
+int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 {
 	printf("Response:\n");
 
@@ -132,14 +134,14 @@ int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLe
 	
 	res = getFileName(requestbuf, &filename);
 	if (res != 0) {
-		fileNotFound(clientfd);
+		fileNotFound(ssl);
 		// end this thread
 		return 1;
 	}
 	
 	res = sanitiseRequest(filename);
 	if (res != 0) {
-		fileNotFound(clientfd);
+		fileNotFound(ssl);
 		//free(filename);
 		return 1;
 	}
@@ -147,7 +149,7 @@ int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLe
 	
 	res = loadRequestedFile(filename, &filebuf, &fileLength);
 	if (res != 0) {
-		fileNotFound(clientfd);
+		fileNotFound(ssl);
 		//free(filename);
 		return 1;
 	}
@@ -303,7 +305,7 @@ char *getExtension(const char *filename) {
 	// have to get extension of linking file
 }
 
-int fileNotFound(int clientfd) 
+int fileNotFound(SSL *ssl) 
 {
 	unsigned int headersMax = 500;
 	char *headersbuf = malloc(headersMax);
@@ -311,7 +313,8 @@ int fileNotFound(int clientfd)
 	strlcat3(headersbuf, &headersbufcur, "HTTP/1.1 404 Not Found\r\n", headersMax);
 	strlcat3(headersbuf, &headersbufcur, "\r\n", headersMax);
 	unsigned int headersLength = headersbufcur - headersbuf;
-	int res = send(clientfd, headersbuf, headersLength, 0);
+	//int res = send(clientfd, headersbuf, headersLength, 0);
+	int res = SSL_write(ssl, headersbuf, headersLength);
 	free(headersbuf);
 	if (res != headersLength) {
 		perror("Error send 404 header");
@@ -320,14 +323,15 @@ int fileNotFound(int clientfd)
 
 	
 	char *response = "404";
-	res = send(clientfd, response, strlen(response), 0);
+	//res = send(clientfd, response, strlen(response), 0);
+	res = SSL_write(ssl, response, strlen(response));
 	if (res != strlen(response)) {
 		perror("Error send file");
 		return 1;
 	}
 	return 0;
 }
-int fileNotAvailable(int clientfd) 
+int fileNotAvailable(SSL *ssl) 
 {
 	return 0;
 }
