@@ -76,7 +76,8 @@ int configure_context(SSL_CTX *ctx)
     }
 
     /* Set the key and cert */
-    if (SSL_CTX_use_certificate_file(ctx, certLocation, SSL_FILETYPE_PEM) <= 0) {
+    //if (SSL_CTX_use_certificate_file(ctx, certLocation, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_certificate_chain_file(ctx, certLocation) <= 0) {
         ERR_print_errors_fp(stderr);
 	    return 1;
     }
