@@ -14,7 +14,7 @@
 #include "uid.h"
 #include "headers.h"
 #include "custom.h"
-#include "openssl.h"
+#include "ssl.h"
 
 
 int buildSocket(unsigned short port);
@@ -37,6 +37,10 @@ int fileNotAvailable(int clientfd);
 int main(int argc, char **argv)
 {
 	SSL_CTX *ctx = setupssl();
+	if (ctx == NULL) {
+		fprintf(stderr, "SSL setup failure. Exiting.\n");
+		return 1;
+	}
 
 	printf("uid at start: %d\n", getuid());
 	

@@ -71,6 +71,7 @@ void *Reallocarray(void *ptr, size_t nmemb, size_t size);
 unsigned long Lseek(int fd, off_t offset, int whence);
 
 int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSize);
+int strncpyuntil(char *dest, const char *src, int length, char delim, char **cur);
 
 int getFormattedDate(char *buf, unsigned int size);
 

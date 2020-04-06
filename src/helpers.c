@@ -467,3 +467,34 @@ int getFormattedDate(char *buf, unsigned int size)
     }
     return 0;
 }
+
+/* copies byes from src to dest until either length bytes have been copied (including terminating null byte)
+ * or src null terminates
+ * return 0 on success
+ * 1 if delimiter was not found in src before copying ended
+ * dest will always be null terminated
+ * If cur is not NULL, Will update *cur to point to the next byte after the delimiter
+ * If src null terminates within given length, *cur will point to the null byte
+*/
+int strncpyuntil(char *dest, const char *src, int length, char delim, char **cur)
+{
+    unsigned int i = 0;
+    while (src[i] != 0 && src[i] != delim && i < length-1) {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = 0;
+    if (src[i] != delim) {
+        return 1;
+    }
+    if (cur != NULL) {
+        if (src[i] == 0) {
+            *cur = &(src[i]);
+        }
+        else {
+            *cur = &(src[i+1]);
+        }
+    }
+
+    return 0;
+}
