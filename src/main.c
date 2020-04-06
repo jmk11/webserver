@@ -196,6 +196,7 @@ int handleRequest(int clientfd, char *requestbuf, SSL *ssl)//, ssize_t requestLe
 }
 
 int dropPermissions(unsigned short goaluid) {
+	printf("Dropping permissions after binding...\n");
 	setuid(goaluid);
 	printf("uid after drop: %d %d\n", getuid(), geteuid());
 	setuid(0);
