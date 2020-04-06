@@ -102,7 +102,7 @@ int parseHeaders(requestHeaders *headers, char *headersstr)
 // request is null terminated within BUFSIZ
 // edits request to null terminate filename
 // and returns pointer to where filename starts
-int getFileName(char *request, char **filename) 
+int getResourceRequest(char *request, char **filename) 
 {
 	unsigned int i;
 	char *method = "GET /";
@@ -128,10 +128,6 @@ int getFileName(char *request, char **filename)
 			break; 
 		}
 	}*/
-	
-	if ((*filename)[0] == 0) {
-		strncpy(*filename, "index.html", BUFSIZ-methodlen); // check this isn't 1 byte overflow
-	}
 	
 	/*
 	int nitems = sscanf(request, "GET %""499s", request1);

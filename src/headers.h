@@ -89,7 +89,7 @@ int initialiseResponseHeaders(responseHeaders *headers);
 int initialiseRequestHeaders(requestHeaders *headers);
 int parseHeaders(requestHeaders *headers, char *headersstr);
 int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *headers);
-int getFileName(char *request, char **filename);
+int getResourceRequest(char *request, char **filename);
 
 
 

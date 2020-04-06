@@ -112,6 +112,7 @@ int readCertLocation(char certLocation[PATHLENGTH], char keyLocation[PATHLENGTH]
         return 1;
     }
     close(fd);
+    buf[bytesRead] = 0;
 
     // get cert location
     char *cur;

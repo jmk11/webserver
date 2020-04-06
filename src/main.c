@@ -21,7 +21,7 @@
 int handleRequest(SSL *ssl, char *requestbuf);//, ssize_t requestLength);
 
 int getFileName(char *request, char **filename);
-int sanitiseRequest(const char *filename);
+int getResource(const char *filename, char newResource[MAXPATH]);
 int loadRequestedFile(const char *filename, char **filebuf, off_t *fileLength);
 int loadHTTPHeaders(off_t fileLength, char *filetype, char **headersbuf, unsigned long *headersLength);
 
@@ -68,10 +68,12 @@ int main(int argc, char **argv)
 		if (clientfd < 0) {
 			perror("accept clientfd < 0");
 		}
-		logSource(clientAddr, NULL);
-		handleConnection(clientfd, ctx);
-		close(clientfd);
-		// what do if can't close client socket?
+		else {
+			logSource(clientAddr, NULL);
+			handleConnection(clientfd, ctx);
+			close(clientfd);
+			// what do if can't close client socket?
+		}
 	}
 	
 	Close(serverfd);
@@ -127,27 +129,28 @@ int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 	off_t fileLength = 0;
 	unsigned long headersLength = 0;
 	int res;
+	char resource[MAXPATH];
 
 	struct requestHeaders requestHeaders;
 	initialiseRequestHeaders(&requestHeaders);
 	parseHeaders(&requestHeaders, requestbuf);
 	
-	res = getFileName(requestbuf, &filename);
+	res = getResourceRequest(requestbuf, &filename);
 	if (res != 0) {
 		fileNotFound(ssl);
 		// end this thread
 		return 1;
 	}
 	
-	res = sanitiseRequest(filename);
+	res = getResource(filename, resource);
 	if (res != 0) {
 		fileNotFound(ssl);
 		//free(filename);
 		return 1;
 	}
-	printf("Filename: %s\n", filename);
+	printf("Filename: %s\n", resource);
 	
-	res = loadRequestedFile(filename, &filebuf, &fileLength);
+	res = loadRequestedFile(resource, &filebuf, &fileLength);
 	if (res != 0) {
 		fileNotFound(ssl);
 		//free(filename);
@@ -155,7 +158,7 @@ int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 	}
 	// won't scale with large file size
 	//free(filename);
-	char *fileextension = getExtension(filename);
+	char *fileextension = getExtension(resource);
 	
 	res = loadHTTPHeaders(fileLength, fileextension, &headersbuf, &headersLength);
 	//res = send(clientfd, headersbuf, headersLength, 0);
@@ -179,12 +182,19 @@ int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 }
 
 // filename length < bufsiz
-int sanitiseRequest(const char *filename) 
+int getResource(const char *filename, char newResource[MAXPATH]) 
 {
 	for (unsigned int i = 0; filename[i+1] != 0; i++) {
 		if (filename[i] == '.' && filename[i+1] == '.') {
 			return 1;
 		}
+	}
+	// I don't like this way
+	if (filename[0] == 0) {
+		strncpy(newResource, "index.html", MAXPATH); // check this isn't 1 byte overflow
+	}
+	else {
+		strncpy(newResource, filename, MAXPATH);
 	}
 	return 0;
 }
