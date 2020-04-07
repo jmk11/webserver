@@ -101,7 +101,7 @@ int readCertLocation(char certLocation[PATHLENGTH], char keyLocation[PATHLENGTH]
 {
     int fd = open(CONFIGLOCATION, O_RDONLY);
     if (fd < 0) {
-        perror("Can't open config file\n");
+        perror("Can't open config file");
         return 1;
     }
     // obviously deal with size etc.
