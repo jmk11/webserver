@@ -2,7 +2,7 @@
 
 #include "hash.h"
 
-unsigned int hash(char *str, unsigned int hashsize)
+unsigned int hash(const char *str, unsigned int hashsize)
 {
     if (str == NULL) { return 0; } // would be better to have some kind of error
     unsigned int sum = 0;

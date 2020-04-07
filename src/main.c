@@ -15,7 +15,8 @@
 #include "headers.h"
 #include "custom.h"
 #include "ssl.h"
-#include "common.h"
+#include "common/common.h"
+#include "contenttype.h"
 
 #define LOGFILE "logs/serverlog.txt"
 bool fileLogging = TRUE;
@@ -70,6 +71,12 @@ int main(int argc, char **argv)
 		perror("Cannot open log file for writing");
 		fprintf(stderr, "Continuing execution without logging to file..");
 		fileLogging = FALSE;
+	}
+
+	int res = buildContentTypeHT();
+	if (res != 0) {
+		fprintf(stderr, "Couldn't build content type hash table.\nExiting.\n");
+		return 1;
 	}
 	
 	printf("Entering accept loop..\n");
@@ -279,20 +286,7 @@ int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, un
 
 	addMyHeaders(&headers);
 
-	if (fileExtension != NULL) {
-		if (strcmp(fileExtension, "jpg") == 0) {
-			headers.ContentType.value = "image/jpeg";
-		}
-		else if (strcmp(fileExtension, "ico") == 0) {
-			headers.ContentType.value = "image/jpeg";
-		}
-		else if (strcmp(fileExtension, "js") == 0) {
-			headers.ContentType.value = "text/javascript";
-		}
-		else {
-			headers.ContentType.value = "text/html; charset=UTF-8";
-		}
-	}
+	setContentType(fileExtension, &(headers.ContentType.value));
 	
 	res = produceHeaders("200", headersbuf, &headers);
 	if (res != 0) {
@@ -331,9 +325,9 @@ int fileNotFound(SSL *ssl)
 {
 	unsigned int headersMax = 500;
 	char *headersbuf = malloc(headersMax);
+	headersbuf[0] = 0;
 	char *headersbufcur = headersbuf;
-	strlcat3(headersbuf, &headersbufcur, "HTTP/1.1 404 Not Found\r\n", headersMax);
-	strlcat3(headersbuf, &headersbufcur, "\r\n", headersMax);
+	strlcat3(headersbuf, &headersbufcur, "HTTP/1.1 404 Not Found\r\n\r\n", headersMax);
 	unsigned int headersLength = headersbufcur - headersbuf;
 	//int res = send(clientfd, headersbuf, headersLength, 0);
 	int res = SSL_write(ssl, headersbuf, headersLength);

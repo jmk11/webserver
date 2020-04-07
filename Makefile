@@ -4,16 +4,21 @@ OPENSSLFLAGS = -lssl -lcrypto
 
 
 .PHONY:	all
-all:	webserver http
+all:	webserverm httpm
 
-webserver:				src/main.c src/helpers.c src/headers.c src/custom.c src/ssl.c src/common.c build/hashtable.o
-						$(CC) $(CFLAGS) $(OPENSSLFLAGS) -o webserver src/main.c src/helpers.c src/headers.c src/custom.c src/ssl.c src/common.c build/hashtable.o
-build/hashtable.o:		src/hashtable.c build/hash.o
-build/hash.o:			src/hash.c
-						$(CC) $(CFLAGS) -c src/hash.c -o build/hash.o
+webserverm:				src/main.c buildm/helpers.o buildm/headers.o src/custom.c src/ssl.c buildm/common.o src/contenttype.c src/hashtable.c src/hash.c
+						$(CC) $(CFLAGS) $(OPENSSLFLAGS) -o webserverm src/main.c buildm/helpers.o buildm/common.o buildm/headers.o src/custom.c src/ssl.c src/contenttype.c src/hashtable.c src/hash.c
 
-http:					src/http.c src/helpers.c src/common.c src/headers.c
-						$(CC) $(CFLAGS) src/http.c src/helpers.c src/common.c src/headers.c -o http
+httpm:					src/http.c buildm/helpers.o buildm/common.o buildm/headers.o
+						$(CC) $(CFLAGS) src/http.c buildm/helpers.o buildm/common.o buildm/headers.o -o httpm
+
+buildm/helpers.o:		src/helpers.c
+						$(CC) $(CFLAGS) -o buildm/helpers.o -c src/helpers.c
+buildm/common.o:		src/common.c
+						$(CC) $(CFLAGS) -o buildm/common.o -c src/common.c
+buildm/headers.o:		src/headers.c
+						$(CC) $(CFLAGS) -o buildm/headers.o -c src/headers.c
+
 .PHONY: clean
 clean:
-	-rm -f webserver http *.o
+	-rm -f webserverm httpm buildm/*.o

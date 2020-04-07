@@ -3,7 +3,7 @@
 
 #include "hashtable.h"
 #include "hash.h"
-#include "constants.h"
+//#include "constants.h"
 
 #define HASHSIZE 200
 
@@ -19,8 +19,8 @@ struct HashTable {
     unsigned int size;
 };
 
-elist *elistAdd(elist *l, char *key, char *value);
-char *elistFind(elist *l, char *key);
+elist *elistAdd(elist *l, const char *key, const char *value);
+char *elistFind(elist *l, const char *key);
 void freeList(elist *l);
 
 HashTable *htCreate() 
@@ -39,14 +39,15 @@ HashTable *htCreate()
     return ht;
 }
 
-int htAdd(HashTable *ht, char *key, char *value) 
+int htAdd(HashTable *ht, const char *key, const char *value) 
 {
     unsigned int keyhash = hash(key, ht->size);
-    elistAdd(ht->table[keyhash], key, value);
+    ht->table[keyhash] = elistAdd(ht->table[keyhash], key, value);
+    if (ht->table[keyhash] == NULL) { return 1;}
     return 0;
 }
 
-char *htLookup(HashTable *ht, char *key) 
+char *htLookup(HashTable *ht, const char *key) 
 {
     if (ht == NULL || ht->table == NULL) { return NULL; }
     unsigned int keyhash = hash(key, ht->size);
@@ -64,11 +65,11 @@ void htDestroy(HashTable *ht)
 }
 
 // return new beginning of list
-elist *elistAdd(elist *l, char *key, char *value)
+elist *elistAdd(elist *l, const char *key, const char *value)
 {
     for (elist *cur = l; cur != NULL; cur = cur->next) {
         if (strcmp(cur->key, key) == 0) {
-            cur->value = value;
+            cur->value = strdup(value);
             return l;
         }
     }
@@ -85,7 +86,7 @@ elist *elistAdd(elist *l, char *key, char *value)
     return cur;
 }
 
-char *elistFind(elist *l, char *key)
+char *elistFind(elist *l, const char *key)
 {
     for (elist *cur = l; cur != NULL; cur = cur->next) {
         if (strcmp(cur->key, key) == 0) {
