@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 #include "ssl.h"
-#include "helpers.h"
+#include "common/helpers.h"
 
 #define PATHLENGTH 150
 #define CONFIGLOCATION "config/certs.txt"

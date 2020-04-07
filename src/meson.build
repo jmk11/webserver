@@ -2,19 +2,20 @@
 subdir('common')
 subdir('hashtable')
 
-hashtable = declare_dependency(link_with : hashtable_lib_static, include_directories : 'hashtable')
-common = declare_dependency(link_with : common_lib_static, include_directories : 'common')
+#hashtable = declare_dependency(link_with : hashtable_lib_static, include_directories : 'hashtable')
+#common = declare_dependency(link_with : common_lib_static, include_directories : 'common')
 
-webserver_sources = ['custom.c', 'custom.h', 'main.c', 'ssl.c', 'ssl.h', 'uid.h', 'contenttype.c', 'contenttype.h']
+webserver_sources = ['custom.c', 'custom.h', 'main.c', 'ssl.c', 'ssl.h', 'contenttype.c', 'contenttype.h']
 crypto = dependency('libcrypto')
 openssl = dependency('libssl')
 executable('webserver', webserver_sources,
-            dependencies: [crypto, openssl, hashtable, common],
+            dependencies: [crypto, openssl],#, hashtable, common],
+            link_with: [hashtable_lib_static, common_lib_static],
             install: true)
 
 executable('http', 
             'http.c',
-            dependencies: common,
+            link_with: common_lib_static,
             install: true)
 
 
