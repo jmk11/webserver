@@ -3,6 +3,7 @@
 int addMyHeaders(responseHeaders *headers)
 {
     headers->ContentLanguage.value = "en";
+	headers->Tk.value = "N";
 
 	//securityheaders.com:
 	headers->XContentTypeOptions.value = "nosniff";

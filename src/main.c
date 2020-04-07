@@ -9,10 +9,10 @@
 #include <assert.h>
 #include <sys/stat.h>
 
-#include "helpers.h"
-#include "constants.h"
-#include "uid.h"
-#include "headers.h"
+#include "common/helpers.h"
+#include "common/constants.h"
+#include "common/uid.h"
+#include "common/headers.h"
 #include "custom.h"
 #include "ssl.h"
 #include "common/common.h"

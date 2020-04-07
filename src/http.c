@@ -5,11 +5,11 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
-#include "uid.h"
-#include "constants.h"
-#include "helpers.h"
-#include "common.h"
-#include "headers.h"
+#include "common/uid.h"
+#include "common/constants.h"
+#include "common/helpers.h"
+#include "common/common.h"
+#include "common/headers.h"
 
 #define RESPSIZE 300
 #define DOMAINSIZE 100

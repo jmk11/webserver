@@ -13,23 +13,26 @@ typedef struct headerPair headerPair;
 // Could just have a function to append to headers string
 
 struct responseHeaders {
+    // general headers
+    headerPair Date;
+    headerPair Upgrade;
+    // response headers
+    headerPair Server;
+    headerPair Location;
+    headerPair RetryAfter;
+    headerPair SetCookie;
+    headerPair Tk; // ="N"
+    headerPair XFrameOptions;
+    headerPair XContentTypeOptions;
+    headerPair ContentSecurityPolicy;
+    // entity headers
     headerPair Allow;
     headerPair ContentLength;
     headerPair ContentLanguage;
     headerPair ContentLocation;
     headerPair ContentMD5;
     headerPair ContentType;
-    headerPair Date;
     headerPair LastModified;
-    headerPair Location;
-    headerPair RetryAfter;
-    headerPair Server;
-    headerPair SetCookie;
-    headerPair Tk; // ="N"
-    headerPair Upgrade;
-    headerPair XFrameOptions;
-    headerPair XContentTypeOptions;
-    headerPair ContentSecurityPolicy;
 };
 typedef struct responseHeaders responseHeaders;
 
