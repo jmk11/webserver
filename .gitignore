@@ -1,3 +1,6 @@
 ./src/uid.h
-webserver
-config/*
+.history/*
+build*/*
+bin/*
+.gdb_history
+.vscode/*

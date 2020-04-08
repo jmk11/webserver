@@ -9,16 +9,19 @@
 #include <assert.h>
 #include <sys/stat.h>
 
-#include "common/helpers.h"
-#include "common/constants.h"
-#include "common/uid.h"
-#include "common/headers.h"
+//#include "helpers.h"
+#include "helpers.h"
+#include "constants.h"
+#include "uid.h"
+#include "headers.h"
 #include "custom.h"
-#include "ssl.h"
-#include "common/common.h"
+#include "ssl/ssl.h"
+#include "common.h"
 #include "contenttype.h"
+#include "wrappers.h" // only needs this for error codes, this isn't right
 
 #define LOGFILE "logs/serverlog.txt"
+#define SSLCONFIGLOCATION "config/certs.txt"
 bool fileLogging = TRUE;
 
 
@@ -37,7 +40,7 @@ int fileNotAvailable(SSL *ssl);
 
 int main(int argc, char **argv)
 {
-	SSL_CTX *ctx = setupssl();
+	SSL_CTX *ctx = setupssl(SSLCONFIGLOCATION);
 	if (ctx == NULL) {
 		fprintf(stderr, "SSL setup failure. Exiting.\n");
 		return 1;
@@ -47,8 +50,12 @@ int main(int argc, char **argv)
 	
 	unsigned short port;
 	if (argc == 2) {
-		port = getPort(argv[1]);
-	} 
+		int res = getPort(argv[1], &port);
+		if (res != 0) {
+			fprintf(stderr, "Exiting.\n");
+			return 1;
+		}
+	}
 	else {
 		port = 443;
 	}
