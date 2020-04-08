@@ -11,7 +11,7 @@ common_lib_static = static_library('common',
                                     common_sources,
                                     dependencies: wrappers_dep)
 
-webserver_sources = ['custom.c', 'custom.h', 'main.c', 'contenttype.c', 'contenttype.h', 'headers.c', 'headers.h', 'headersbase.h']
+webserver_sources = ['custom.c', 'custom.h', 'main.c', 'contenttype.c', 'contenttype.h', 'headers.c', 'headers.h', 'headersbase.h', 'connection.c', 'connection.h']
 executable('webserver', webserver_sources,
             link_with: [hashtable_lib_static, common_lib_static, ssl_lib_static],
             dependencies: [helpers_dep, wrappers_dep, openssl],
