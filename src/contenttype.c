@@ -1,6 +1,6 @@
 
 #include "hashtable/hashtable.h"
-#include "common/headers.h"
+#include "headers.h"
 
 static HashTable *ht;
 
