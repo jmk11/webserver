@@ -1,7 +1,7 @@
 #ifndef CUSTOM_H
 #define CUSTOM_H
 
-#include "common/headers.h"
+#include "headers.h"
 
 int addMyHeaders(responseHeaders *headers);
 

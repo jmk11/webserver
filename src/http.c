@@ -5,11 +5,14 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
-#include "common/uid.h"
-#include "common/constants.h"
-#include "common/helpers.h"
-#include "common/common.h"
-#include "common/headers.h"
+#include "uid.h"
+#include "constants.h"
+//#include "helpers.h"
+#include "common.h"
+//#include "headers.h"
+//#include "helpers/helpers.h"
+#include "helpers.h"
+#include "wrappers.h"
 
 #define RESPSIZE 300
 #define DOMAINSIZE 100
@@ -19,7 +22,7 @@
 
 int readDomain(char domain[DOMAINSIZE]);
 int handleConnection(int clientfd, const char *domain);
-
+int getResourceRequest(char *request, char **filename);
 
 int main(int argc, char **argv)
 {
@@ -27,7 +30,11 @@ int main(int argc, char **argv)
 	
 	unsigned short port;
 	if (argc == 2) {
-		port = getPort(argv[1]);
+		int res = getPort(argv[1], &port);
+		if (res != 0) {
+			fprintf(stderr, "Exiting.\n");
+			return ARGSERROR;
+		}
 	} 
 	else {
 		port = 80;
@@ -110,13 +117,13 @@ int handleConnection(int clientfd, const char *domain)
 		printf("HTTP: %s\n", requestbuf);
 		int res = getResourceRequest(requestbuf, &resource);
 		if (res != 0) {
-			fprintf(stderr, "Couldn't retrive resource from request\n");
+			fprintf(stderr, "HTTP Couldn't retrieve resource from request\n");
 			resource = nullbyte;
 		}
 	}
 
 	// append requested resource to domain name
-	snprintf(response, RESPSIZE, "HTTP/1.1 301 Moved Permanently\r\nLocation: %s/%s\r\n\r\n", domain, resource);
+	snprintf(response, RESPSIZE, "HTTP/1.1 301 Moved Permanently\r\nLocation: %s%s\r\n\r\n", domain, resource);
 	send(clientfd, response, strlen(response), 0);
 
 	return 0;
@@ -145,6 +152,24 @@ int readDomain(char domain[DOMAINSIZE])
 	}*/
     close(fd);
 	return 0;
+}
+
+// request is null terminated within BUFSIZ
+// edits request to null terminate filename
+// and returns pointer to where filename starts
+int getResourceRequest(char *request, char **filename) 
+{
+	for (unsigned int i = 0; request[i] != 0; i++) {
+		// you can use strchr for this
+		if (request[i] == '/') {
+			*filename = &(request[i]);
+			// turn first space into null:
+			while (request[i] != ' ' && request[i] != 0) { i++; }
+			request[i] = 0;
+			return 0;
+		}
+	}
+	return 1;
 }
 
 
