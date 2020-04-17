@@ -23,13 +23,13 @@ elist *elistAdd(elist *l, const char *key, const char *value);
 char *elistFind(elist *l, const char *key);
 void freeList(elist *l);
 
-HashTable *htCreate() 
+HashTable *htCreate(unsigned int size)
 {
     HashTable *ht = malloc(sizeof(HashTable));
     if (ht == NULL) {
         return NULL;
     }
-    ht->size = HASHSIZE;
+    ht->size = size;
     ht->table = malloc(ht->size * sizeof(elist *));
     if (ht->table == NULL) {
         free(ht);

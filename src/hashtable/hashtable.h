@@ -3,7 +3,7 @@
 
 typedef struct HashTable HashTable;
 
-HashTable *htCreate() ;
+HashTable *htCreate(unsigned int size);
 int htAdd(HashTable *ht, const char *key, const char *value) ;
 char *htLookup(HashTable *ht, const char *key);
 void htDestroy(HashTable *ht);

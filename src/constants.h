@@ -14,19 +14,19 @@
 
 //#define MAXNUMARGS 2
 
-/*
+
 #define TRUE 1
 #define FALSE 0
 typedef char bool;
-*/
 
 
+/*
 enum bool {
     FALSE,
     TRUE
 };
 typedef enum bool bool;
-
+*/
 // bool a = 182340932;
 // this assignment doesn't give warning - it lets you assign anything to an enum.
 // What is the point of enum???

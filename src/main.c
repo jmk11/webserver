@@ -31,10 +31,11 @@
 
 #define LOGFILE "logs/serverlog.txt"
 #define SSLCONFIGLOCATION "config/certs.txt"
-static bool fileLogging = TRUE;
 
 int main(int argc, char **argv)
 {
+	bool fileLogging = TRUE;
+
 	SSL_CTX *ctx = setupssl(SSLCONFIGLOCATION);
 	if (ctx == NULL) {
 		fprintf(stderr, "SSL setup failure. Exiting.\n");

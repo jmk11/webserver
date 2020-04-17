@@ -32,7 +32,7 @@ int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSiz
  * If cur is not NULL, Will update *cur to point to the next byte after the delimiter
  * If src null terminates within given length, *cur will point to the null byte
 */
-int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, char **cur)
+int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, const char **cur)
 {
     unsigned int i = 0;
     while (src[i] != 0 && src[i] != delim && i < length-1) {
@@ -58,9 +58,14 @@ int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, c
 
 /*
 * Strcmp, but only true/false for equality, and stops at either null byte or given delimiter
+* if not equal, return 0
+* if equality test ended at delimiter, 1
+* if equality test ended at null byte, 2
+* Updates *s1P to point to current location
+* So provide your string in s1 and comparison in s2
 * Not tested
 */
-int strcmpequntil(const char *s1, const char *s2, char delim)
+int strcmpequntil(const char **s1P, const char *s2, char delim)
 {
     // better to increment pointers rather than use unsigned int index because with index you have limited capacity
     /*
@@ -68,19 +73,21 @@ int strcmpequntil(const char *s1, const char *s2, char delim)
         if (*s1 != *s2) { return 0;}
     }*/
 
+    const char *s1 = *s1P;
     for (;;s1++, s2++) {
         if (*s1 == delim) {
             if (*s2 == delim) { break; }
             return 0;
         }
         if (*s1 == 0) {
-            if (*s2 == 0) { break; }
+            if (*s2 == 0) { *s1P = s1; return 2; }
             return 0;
         }
         if (*s1 != *s2) {
             return 0;
         }
     }
+    *s1P = s1+1;
     return 1;
 }
 
@@ -135,4 +142,65 @@ char strlcat2(char *dst, const char *src, unsigned int maxSize, unsigned int *cu
     }
 
     return 0;
+}
+
+// Takes array of strings to concatenate to dst
+// Array must be finished with a null pointer
+// starts writing from *dstCur and updates *dstCur to next byte to write into (ie to null byte)
+// if dstCur is NULL, starts writing from dstStart and obv doesn't update dstcur
+// 0: success
+// 1: not enough space for src
+// !!!! not tested
+int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned int maxSize)
+{
+    const char* cursrc;
+    char* dst;
+    if (dstCur != NULL) {
+        maxSize = maxSize - (*dstCur - dstStart);
+        dst = *dstCur;
+    }
+    else {
+        dst = dstStart;
+    }
+    
+    char* dstEnd = dstStart + maxSize;
+    for (; dst < dstEnd-1 && *dst != 0; dst++) {}
+    for (unsigned int i = 0; srces[i] != NULL; i++) {
+        cursrc = srces[i];
+        while (dst < dstEnd-1 && *cursrc != 0) {
+            *(dst++) = *(cursrc++);
+        }
+        if (*cursrc != 0) {
+            // failed to fit this one in
+            *dst = 0;
+            return 1;
+        }
+    }
+    *dst = 0;
+    if (dstCur != NULL) {
+        *dstCur = dst;
+    }
+    return  0;
+    
+    /*
+    while (*src != NULL) {
+        cursrc = *src;
+        char *dstEnd = dst + maxSize;
+        for (; dst < dstEnd-1 && *dst != 0; dst++) {}
+        while (dst < dstEnd-1 && *cursrc != 0) {
+            *(dst++) = *(cursrc++);
+        }
+        *dst = 0;
+        if (*cursrc != 0) {
+            return 1;
+        }
+        src++;
+    }*/
+}
+
+char *terminateAt(char *s, char end) 
+{
+    for (; *s != end && *s != 0; s++) {}
+	*s = 0;
+    return s;
 }

@@ -6,7 +6,7 @@ static HashTable *ht;
 
 int buildContentTypeHT()
 {
-    ht = htCreate();
+    ht = htCreate(150);
     int res = htAdd(ht, "html", "text/html; charset=utf-8");
     if (res != 0) { return 1; }
     res = htAdd(ht, "js", "text/javascript"); // text/plain if not referred from my site?
@@ -14,6 +14,7 @@ int buildContentTypeHT()
     res = htAdd(ht, "css", "text/css");
     if (res != 0) { return 1; }
     res = htAdd(ht, "txt", "text/plain");
+    if (res != 0) { return 1; }
 
     res = htAdd(ht, "apng", "image/apng");
     if (res != 0) { return 1; }

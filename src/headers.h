@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 struct headerPair {
-    const char *label;
+    const char* const label;
     char *value;
 };
 typedef struct headerPair headerPair;
@@ -40,21 +40,21 @@ typedef struct responseHeaders responseHeaders;
 
 enum Method { 
     METHODINIT,
-    GET,
-    POST,
-    PUT,
-    PATH,
-    DELETE,
-    COPY,
-    HEAD,
-    OPTIONS,
-    LINK,
-    UNLINK,
-    PURGE,
-    LOCK,
-    UNLOCK,
-    PROPFIND,
-    VIEW
+    METHOD_GET,
+    METHOD_POST,
+    METHOD_PUT,
+    METHOD_PATH,
+    METHOD_DELETE,
+    METHOD_COPY,
+    METHOD_HEAD,
+    METHOD_OPTIONS,
+    METHOD_LINK,
+    METHOD_UNLINK,
+    METHOD_PURGE,
+    METHOD_LOCK,
+    METHOD_UNLOCK,
+    METHOD_PROPFIND,
+    METHOD_VIEW
 };
 
 enum DNT {
@@ -85,15 +85,14 @@ struct requestHeaders {
     //char *UpgradeInsecureRequests;
     enum UIR UpgradeInsecureRequests;
     char *Referer;
+    //bool CKeepAlive;
 };
 typedef struct requestHeaders requestHeaders;
 
 int initialiseResponseHeaders(responseHeaders *headers);
 int initialiseRequestHeaders(requestHeaders *headers);
 int parseHeaders(requestHeaders *headers, char *headersstr);
-int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *headers);
-int getResourceRequest(char *request, char **filename);
-
+int produceHeaders(const char *statusCode, char **headersstrP, const responseHeaders *headers);
 
 
 /*
