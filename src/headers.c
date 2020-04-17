@@ -5,6 +5,7 @@
 #include "helpers.h"
 #include "headersbase.h"
 #include "strings/strings.h"
+//#include "hashtable/hashtableG.h"
 //#include "statusmessage.h"
 
 #define HEADERSMAX 1024
@@ -99,46 +100,87 @@ int produceHeaders(const char *status, char **headersstrP, const responseHeaders
     return headersstrcur - headersstr;
 }
 
-int parseHeaders(requestHeaders *headers, char *headersstr)
+const char *extractMethod(requestHeaders *headers, const char *headersstr) 
 {
-    // method:
     if (strcmpequntil(&headersstr, "GET", ' ') == 1) {
         headers->method = METHOD_GET;
+        return headersstr;
     }
     else if (strcmpequntil(&headersstr, "HEAD", ' ') == 1) {
         headers->method = METHOD_HEAD;
+        return headersstr;
     }
     else {
-        return 1;
+        return NULL;
+        // return 501 not implemented
     }
     // could do with hashtable after replacing first space with null byte
-    // resource:
+}
+
+// request is null terminated within BUFSIZ
+// edits request to null terminate filename
+// and sets pointer to where filename starts
+char *extractResource(requestHeaders *headers, char *headersstr)
+{
     if (headersstr[0] != '/') {
-        return 1;
+        return NULL;
     }
     headers->resource = headersstr+1;
-    headersstr = terminateAt(headers->resource, ' ') + 1;
+    return terminateAt(headers->resource, ' ') + 1;
+}
+
+const char *manageVersion(requestHeaders *headers, const char *headersstr)
+{
+     if (! (strcmpequntil(&headersstr, "HTTP/1", '.'))) {
+         return NULL;
+     }
+     if (headersstr[0] == '0') {
+         headers->ConnectionKeep = FALSE;
+     }
+     else if (headersstr[0] == '1') {
+         headers->ConnectionKeep = TRUE;
+     }
+     else {
+         return NULL;
+         // return 505 HTTP version not supported
+     }
+     if (headersstr[1] != '\r' || headersstr[2] != '\n') {
+         return NULL;
+         // return 400 bad request
+     }
+     
+    return headersstr + 3;
+
+    // && (strcmpequntil(&(headersstr[1]), "\r"))) // does &(headersstr[1]) have 
+    // HTTP/1.0: no persistent connection
+    // HTTP/1.1: keep connection by default
 
     // HTTP/1.1
+    /*
     if (! (
         (strcmpequntil(&headersstr, "HTTP/1", '.'))
         && (headersstr[0] == '0' || headersstr[0] == '1')
         && (headersstr[1] == '\r' && headersstr[2] == '\n')
         )) {
         return 1;
-    }
-    // && (strcmpequntil(&(headersstr[1]), "\r"))) // does &(headersstr[1]) have 
+    }*/
+}
 
-    headersstr = headersstr + 3;
+int parseHeaders(requestHeaders *headers, char *headersstr)
+{
+    // method:
+    if ((headersstr = extractMethod(headers, headersstr)) == NULL) { return 501; }
+    if ((headersstr = extractResource(headers, headersstr)) == NULL) { return 400; }
+    if ((headersstr = manageVersion(headers, headersstr)) == NULL) { return 505; }
 
     // exercise: linked list on stack
-    
+    // exercise hash table of function pointers
 
 
 
 
-    
-    
+
+
 
     // first line: replace first and second spaces with null byte
     // following lines: replace \r with null byte
@@ -163,6 +205,7 @@ int parseHeaders(requestHeaders *headers, char *headersstr)
     return 0;
 }
 
+/*
 // request is null terminated within BUFSIZ
 // edits request to null terminate filename
 // and returns pointer to where filename starts
@@ -181,6 +224,7 @@ char *getResourceRequest(char *request)
     terminateAt(request, ' ');
     return request;
 }
+*/
 
 void freeHeadersstr(char *headersstr) {
     free(headersstr);

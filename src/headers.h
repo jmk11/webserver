@@ -3,8 +3,11 @@
 
 #include <stdlib.h>
 
+#include "constants.h"
+#include "bool/bool.h"
+
 struct headerPair {
-    const char* const label;
+    const char *label;
     char *value;
 };
 typedef struct headerPair headerPair;
@@ -70,8 +73,13 @@ enum UIR {
 
 // two INITS in different enums.. both at 0 but seems bad
 
+struct headerPairBool {
+    const char* const label;
+    bool value;
+};
+typedef struct headerPairBool headerPairBool;
+
 struct requestHeaders {
-    //char *method;
     enum Method method;
     char *resource;
     char *Host;
@@ -79,10 +87,8 @@ struct requestHeaders {
     char *Accept;
     char *AcceptLanguage;
     char *AcceptEncoding;
-    //char *DNT;
     enum DNT DNT;
-    char *Connection;
-    //char *UpgradeInsecureRequests;
+    bool ConnectionKeep;
     enum UIR UpgradeInsecureRequests;
     char *Referer;
     //bool CKeepAlive;

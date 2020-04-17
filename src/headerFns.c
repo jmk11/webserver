@@ -1,12 +1,66 @@
+#include <string.h>
+#include <stdlib.h>
 
-#include "hashtable/hashtable.h"
-#include "headers.h"
+#include "hashtable/hashtableG.h"
+#include "hashtable/hash.h"
+#include "strings/strings.h"
 
 static HashTable *ht;
+// key is string
+// value is function pointer
+// void 
+//typedef void (*valueFn) (const char *);
 
-int buildContentTypeHT()
+// compareKey
+// hash
+// copykey
+// copyvalue
+// freekey
+// freevalue
+
+bool compareKey(const void *a, const void *b);
+void *copyKey(const void *key);
+void *copyValue(const void *value);
+void freeKey(void *key);
+void freeValue(void *value);
+int buildHeaderFnsHT(void);
+
+bool compareKey(const void *a, const void *b)
 {
-    ht = htCreate(150);
+    return strcmpequntil((const char **) &a, b, ':') == 1;
+}
+
+//unsigned int hash(const void *, unsigned int)
+
+void *copyKey(const void *key)
+{
+    return strdup(key);
+}
+
+void *copyValue(const void *value)
+{
+    return value;
+    // not sure what to do about const discarding
+    // I don't think I need to copy a function pointer?
+    // Couldn't change within life of program?
+    //const void *copy = malloc(sizeof(void *));
+    //memcpy()
+
+}
+
+void freeKey(void *key)
+{
+    free(key);
+}
+
+void freeValue(void *value)
+{
+    return;
+}
+
+int buildHeaderFnsHT()
+{
+    ht = htCreate(150, &compareKey, &stringhash, &copyKey, &copyValue, &freeKey, &freeValue);
     int res = htAdd(ht, "html", "text/html; charset=utf-8");
     if (res != 0) { return 1; }
     res = htAdd(ht, "js", "text/javascript"); // text/plain if not referred from my site?
@@ -57,20 +111,4 @@ int buildContentTypeHT()
     if (res != 0) { return 1; }
 
     return 0;
-}
-
-int setContentType(const char *fileExtension, char **contentType)
-{
-    if (contentType == NULL) {
-        return 1;
-    }
-    *contentType = htLookup(ht, fileExtension);
-    if (*contentType == NULL) {
-        *contentType = htLookup(ht, "default");
-    }
-    return 0;
-}
-
-void destroyContentTypeHT() {
-    htDestroy(ht);
 }

@@ -14,11 +14,11 @@
 
 //#define MAXNUMARGS 2
 
-
+/*
 #define TRUE 1
 #define FALSE 0
 typedef char bool;
-
+*/
 
 /*
 enum bool {

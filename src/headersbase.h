@@ -22,8 +22,24 @@ const struct responseHeaders responseHeadersBase = {
     .ContentSecurityPolicy =  {"Content-Security-Policy", NULL}
 };
 
+/*
 const struct requestHeaders requestHeadersBase = {
-    //.method = NULL,
+    .method = METHODINIT,
+    .resource = NULL,
+    .Host = {"Host", NULL},
+    .UserAgent = {"User-Agent", NULL},
+    .Accept = {"Accept", NULL},
+    .AcceptLanguage = {"Accept-Language", NULL},
+    .AcceptEncoding = {"Accept-Encoding", NULL},
+    .DNT = {"DNT", TRUE},
+    .ConnectionKeep = {"Connection", TRUE},
+    .UpgradeInsecureRequests = {"Upgrade-Insecure-Requests", FALSE},
+    .Referer = {"Referer", NULL}
+};
+*/
+
+
+const struct requestHeaders requestHeadersBase = {
     .method = METHODINIT,
     .resource = NULL,
     .Host = NULL,
@@ -31,10 +47,8 @@ const struct requestHeaders requestHeadersBase = {
     .Accept = NULL,
     .AcceptLanguage = NULL,
     .AcceptEncoding = NULL,
-    //.DNT = NULL,
     .DNT = DNTINIT,
-    .Connection = NULL,
-    //.UpgradeInsecureRequests = NULL,
+    .ConnectionKeep = TRUE,
     .UpgradeInsecureRequests = UIRINIT,
     .Referer = NULL
 };

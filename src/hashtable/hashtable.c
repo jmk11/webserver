@@ -5,7 +5,7 @@
 #include "hash.h"
 //#include "constants.h"
 
-#define HASHSIZE 200
+//#define HASHSIZE 200
 
 typedef struct elemlist elist;
 struct elemlist {
@@ -57,7 +57,7 @@ char *htLookup(HashTable *ht, const char *key)
 
 void htDestroy(HashTable *ht)
 {
-    for (unsigned int i = 0; i < HASHSIZE; i++) {
+    for (unsigned int i = 0; i < ht->size; i++) {
         freeList(ht->table[i]);
     }
     free(ht->table);
