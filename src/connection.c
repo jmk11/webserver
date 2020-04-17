@@ -28,9 +28,9 @@ int handleRequest(SSL *ssl, char *requestbuf);//, ssize_t requestLength);
 char *buildFilePath(const char *filename);
 int getResource(const char *filename, char newResource[MAXPATH]) ;
 int loadRequestedFile(const char *filepath, char **filebuf, off_t *fileLength) ;
-int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, unsigned long *headersLength) ;
+int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, unsigned int *headersLength) ;
 char *getExtension(const char *filepath);
-char *nullbyte();
+char *nullbyte(void);
 int fileNotFound(SSL *ssl);
 int fileNotAvailable(SSL *ssl);
 
@@ -80,7 +80,10 @@ int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 	char *filebuf = NULL;
 	char *headersbuf = NULL;
 	off_t fileLength = 0;
-	unsigned long headersLength = 0;
+	unsigned int headersLength = 0;
+	// the whole point of headersLength is eventually to be used as int parameter to ssl_write
+	// but along the way i would like to be able to assume it is unsigned
+	// so what to do?
 	int res;
 	char resource[MAXPATH];
 
@@ -203,7 +206,7 @@ int loadRequestedFile(const char *filepath, char **filebuf, off_t *fileLength)
 #define OFF_TSTRMAX (OFF_TDIGITS+1)
 
 
-int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, unsigned long *headersLength) 
+int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, unsigned int *headersLength) 
 {
 	responseHeaders headers;
 	initialiseResponseHeaders(&headers);
@@ -214,7 +217,7 @@ int loadHTTPHeaders(off_t fileLength, char *fileExtension, char **headersbuf, un
 	headers.ContentLength.value = contentLength;
 
 	char datebuf[MAXLENGTH];
-	int res = getFormattedDate(datebuf, MAXLENGTH);
+	int res = getHTTPDate(datebuf, MAXLENGTH);
 	if (res == 0) {
 		headers.Date.value = datebuf;
 	}
@@ -294,10 +297,12 @@ int fileNotFound(SSL *ssl)
 {
 	unsigned int headersMax = 500;
 	char *headersbuf = malloc(headersMax);
-	headersbuf[0] = 0;
+	/*headersbuf[0] = 0;
 	char *headersbufcur = headersbuf;
 	strlcat3(headersbuf, &headersbufcur, "HTTP/1.1 404 Not Found\r\n\r\n", headersMax);
-	unsigned int headersLength = headersbufcur - headersbuf;
+	int headersLength = headersbufcur - headersbuf;*/
+	int headersLength = snprintf(headersbuf, headersMax, "HTTP/1.1 404 Not Found\r\n\r\n");
+	// I want to strcpy and return number of bytes copied
 	//int res = send(clientfd, headersbuf, headersLength, 0);
 	int res = SSL_write(ssl, headersbuf, headersLength);
 	free(headersbuf);

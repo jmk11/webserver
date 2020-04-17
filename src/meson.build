@@ -1,5 +1,6 @@
 subdir('hashtable')
 subdir('wrappers')
+subdir('strings')
 subdir('helpers')
 #subdir('common')
 openssl = dependency('libssl')
@@ -13,7 +14,7 @@ common_lib_static = static_library('common',
 
 webserver_sources = ['custom.c', 'custom.h', 'main.c', 'contenttype.c', 'contenttype.h', 'headers.c', 'headers.h', 'headersbase.h', 'connection.c', 'connection.h']
 executable('webserver', webserver_sources,
-            link_with: [hashtable_lib_static, common_lib_static, ssl_lib_static],
+            link_with: [hashtable_lib_static, common_lib_static, ssl_lib_static, strings_lib_static],
             dependencies: [helpers_dep, wrappers_dep, openssl],
             install: true)
 

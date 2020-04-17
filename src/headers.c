@@ -4,6 +4,7 @@
 #include "headers.h"
 #include "helpers.h"
 #include "headersbase.h"
+#include "strings/strings.h"
 
 #define HEADERSMAX 1024
 
@@ -52,7 +53,7 @@ int produceHeaders(char *statusCode, char **headersstr, const responseHeaders *h
     char *headersstrcur = *headersstr + bytesWritten;*/
 
     // I'm relying on struct layout which you aren't supposed to do but I want to try this
-    headerPair *pair = headers;
+    const headerPair *pair = headers;
     unsigned int numPairs = sizeof(struct responseHeaders) / sizeof(headerPair);
     for (unsigned int i = 0; i < numPairs; i++, pair++) {
         if (pair->value != NULL) {

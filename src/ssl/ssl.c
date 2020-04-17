@@ -4,12 +4,13 @@
 
 #include "ssl.h"
 #include "helpers.h"
+#include "../strings/strings.h"
 
 #define PATHLENGTH 150
 
-void init_openssl();
-void cleanup_openssl();
-SSL_CTX *create_context();
+void init_openssl(void);
+void cleanup_openssl(void);
+SSL_CTX *create_context(void);
 int configure_context(SSL_CTX *ctx, const char *configlocation);
 int readCertLocation(const char *configlocation, char certLocation[PATHLENGTH], char keyLocation[PATHLENGTH]);
 
@@ -45,7 +46,7 @@ void init_openssl()
 
 void cleanup_openssl()
 {
-    EVP_cleanup();
+    EVP_cleanup(); // wth this does nothing?
 }
 
 SSL_CTX *create_context()
@@ -132,3 +133,29 @@ int readCertLocation(const char *configlocation, char certLocation[PATHLENGTH], 
     
     return 0;
 }
+
+// With this function here, this file is independent and can be copied as a library
+/*
+int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, char **cur)
+{
+    unsigned int i = 0;
+    while (src[i] != 0 && src[i] != delim && i < length-1) {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = 0;
+    if (src[i] != delim) {
+        return 1;
+    }
+    if (cur != NULL) {
+        if (src[i] == 0) {
+            *cur = &(src[i]);
+        }
+        else {
+            *cur = &(src[i+1]);
+        }
+    }
+
+    return 0;
+}
+*/

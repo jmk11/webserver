@@ -27,6 +27,9 @@ enum bool {
 };
 typedef enum bool bool;
 
+// bool a = 182340932;
+// this assignment doesn't give warning - it lets you assign anything to an enum.
+// What is the point of enum???
 
 typedef char byte;
 

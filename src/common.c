@@ -4,6 +4,7 @@
 #include <unistd.h>
 //#include <string.h>
 
+#include "common.h"
 #include "constants.h"
 //#include "helpers.h"
 #include "wrappers.h"
@@ -46,6 +47,10 @@ int logSource(int logfd, struct sockaddr_in addrStruct)
 	snprintf(buf, bufsize, "Connection from %s:%hu\n", addrstr, addrStruct.sin_port);
 	int bytesWritten = write(logfd, buf, strlen(buf));
 	if (bytesWritten != strlen(buf)) {
+		// if strlen(buf) was the unsigned equivalent of -1, and it got cast to signed for this comparison,
+		// and write returned -1, then bytesWritten == strlen would be true
+		// would add check that strlen(buf) is <= INT_MAX, but ofc that would be a waste of execution time because we can see that strlen(buf) is small.. right?
+		// does the signed get cast to unsigned or the unsigned to signed for this comparison? Or is it undefined and that's the problem?
 		if (bytesWritten < 0) {
 			perror("Couldn't write to log file");
 		}
@@ -59,14 +64,18 @@ int logSource(int logfd, struct sockaddr_in addrStruct)
 
 int dropPermissions(unsigned short goaluid) {
 	printf("Dropping permissions after binding...\n");
+	// !! also need to drop group privileges!
 	setuid(goaluid);
 	printf("uid after drop: %d %d\n", getuid(), geteuid());
 	setuid(0);
 	printf("uid fter setuid: %d %d\n", getuid(), geteuid());
 	seteuid(0);
 	printf("uid after seteuid: %d %d\n", getuid(), geteuid());
-	if (getuid() != goaluid || geteuid() != goaluid) {
+	/*if (getuid() != goaluid || geteuid() != goaluid) {
 		exit(PERMISSIONSERROR);
+	}*/
+	if (getuid() == 0 || geteuid() == 0) {
+		exit(PERMISSIONSERROR);	
 	}
 	return 0;
 	// does this check introduce security problems by calling setuid and seteuid 0?

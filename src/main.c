@@ -27,10 +27,11 @@
 #include "contenttype.h"
 #include "wrappers.h" // only needs this for error codes, this isn't right
 #include "connection.h"
+#include "strings/strings.h"
 
 #define LOGFILE "logs/serverlog.txt"
 #define SSLCONFIGLOCATION "config/certs.txt"
-bool fileLogging = TRUE;
+static bool fileLogging = TRUE;
 
 int main(int argc, char **argv)
 {
@@ -94,7 +95,7 @@ int main(int argc, char **argv)
 			// what do if can't close client socket?
 		}
 	}
-	
+
 	Close(logfd);
 	Close(serverfd);
 	cleanssl(ctx);
