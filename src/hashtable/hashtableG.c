@@ -23,7 +23,7 @@ struct HashTable {
 };
 
 elist *elistAdd(elist *l, compareFn compare, copyFn copyKey, copyFn copyValue, const void *key, const void *value);
-char *elistFind(elist *l, compareFn compare, const void *key);
+void *elistFind(elist *l, compareFn compare, const void *key);
 void freeList(elist *l, freeFn freeKey, freeFn freeValue);
 
 HashTable *htCreate(unsigned int size, compareFn compareKey, hashFn hash, 
@@ -59,7 +59,7 @@ int htAdd(HashTable *ht, const void *key, const void *value)
 }
 
 // return pointer for success and NULL on failure
-char *htLookup(HashTable *ht, const void *key) 
+void *htLookup(HashTable *ht, const void *key) 
 {
     if (ht == NULL || ht->table == NULL) { return NULL; }
     unsigned int keyhash = ht->hash(key, ht->size);
@@ -98,7 +98,7 @@ elist *elistAdd(elist *l, compareFn compare, copyFn copyKey, copyFn copyValue, c
     return cur;
 }
 
-char *elistFind(elist *l, compareFn compare, const void *key)
+void *elistFind(elist *l, compareFn compare, const void *key)
 {
     for (elist *cur = l; cur != NULL; cur = cur->next) {
         if (compare(cur->key, key)) {

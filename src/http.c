@@ -13,6 +13,7 @@
 //#include "helpers/helpers.h"
 #include "helpers.h"
 #include "wrappers.h"
+#include "bool/bool.h"
 
 #define RESPSIZE 300
 #define DOMAINSIZE 100

@@ -13,7 +13,7 @@ typedef void (*freeFn) (void *);
 HashTable *htCreate(unsigned int size, compareFn compare, hashFn hash, 
     copyFn copyKey, copyFn copyValue, freeFn freeKey, freeFn freeValue);
 int htAdd(HashTable *ht, const void *key, const void *value) ;
-char *htLookup(HashTable *ht, const void *key);
+void *htLookup(HashTable *ht, const void *key);
 void htDestroy(HashTable *ht);
 
 #endif /* #HASHTABLEG_H */

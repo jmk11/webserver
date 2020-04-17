@@ -1,12 +1,13 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "headers.h"
 #include "helpers.h"
 #include "headersbase.h"
 #include "strings/strings.h"
+#include "headerpriv.h"
 //#include "hashtable/hashtableG.h"
 //#include "statusmessage.h"
+#include "headerFnsht.h"
 
 #define HEADERSMAX 1024
 
@@ -102,11 +103,11 @@ int produceHeaders(const char *status, char **headersstrP, const responseHeaders
 
 const char *extractMethod(requestHeaders *headers, const char *headersstr) 
 {
-    if (strcmpequntil(&headersstr, "GET", ' ') == 1) {
+    if (strcmpequntil(&headersstr, "GET ", ' ') == 1) {
         headers->method = METHOD_GET;
         return headersstr;
     }
-    else if (strcmpequntil(&headersstr, "HEAD", ' ') == 1) {
+    else if (strcmpequntil(&headersstr, "HEAD ", ' ') == 1) {
         headers->method = METHOD_HEAD;
         return headersstr;
     }
@@ -131,7 +132,7 @@ char *extractResource(requestHeaders *headers, char *headersstr)
 
 const char *manageVersion(requestHeaders *headers, const char *headersstr)
 {
-     if (! (strcmpequntil(&headersstr, "HTTP/1", '.'))) {
+     if (! (strcmpequntil(&headersstr, "HTTP/1.", '.'))) {
          return NULL;
      }
      if (headersstr[0] == '0') {
@@ -166,6 +167,111 @@ const char *manageVersion(requestHeaders *headers, const char *headersstr)
     }*/
 }
 
+// I think header values are allowed to have any amount of whitespace (space | horizontal tab) before and after them
+// change
+// https://www.w3.org/TR/upgrade-insecure-requests/#preference
+
+// assuming provided headers string is byte after colon
+char *manageHost(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    char *cur = terminateAt(headersstr, '\r');
+    // I want to move to \r, but if there is whitespace, terminate at first whitespace
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    headers->Host = headersstr;
+    return cur + 1;
+}
+char *manageUA(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    char *cur = terminateAt(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    headers->UserAgent = headersstr;
+    return cur + 1;
+}
+
+char *manageAccept(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    char *cur = terminateAt(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    headers->Accept = headersstr;
+    return cur + 1;
+}
+
+char *manageAcceptLanguage(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    char *cur = terminateAt(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    headers->AcceptLanguage = headersstr;
+    return cur + 1;
+}
+
+char *manageAcceptEncoding(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    char *cur = terminateAt(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    headers->AcceptEncoding = headersstr;
+    return cur + 1;
+}
+
+char *manageDNT(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    if (headersstr[0] == '0') { headers->DNT = DNT0; }
+    else if (headersstr[0] == '1') { headers->DNT = DNT1; }
+    else { return NULL; }
+
+    char *cur = strchr(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    return cur + 1;
+}
+
+char *manageConnection(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    char *cur = headersstr;
+    if (strcmpequntil(&cur, "keep-alive\r", '\r') == 1) { 
+        headers->ConnectionKeep = TRUE; 
+    }
+    else {
+        cur = headersstr;
+        if (strcmpequntil(&cur, "close\r", '\r') == 1) {
+            // strcmpequntil cannot possibly return 2 here because s2 has the delim
+            headers->ConnectionKeep = FALSE; 
+        }
+        else {
+            return NULL;
+        }
+    }
+    
+    if (*cur != '\n') { return NULL; }
+    return cur + 1;
+}
+
+char *manageUIR(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    if (headersstr[0] == '1') { headers->UpgradeInsecureRequests = UIR1; }
+    else { return NULL; }
+
+    char *cur = strchr(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    return cur + 1;
+}
+
+char *manageReferer(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    char *cur = terminateAt(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    headers->AcceptLanguage = headersstr;
+    return cur + 1;
+    // store if same domain or do elsewhere?
+}
+
 int parseHeaders(requestHeaders *headers, char *headersstr)
 {
     // method:
@@ -176,10 +282,13 @@ int parseHeaders(requestHeaders *headers, char *headersstr)
     // exercise: linked list on stack
     // exercise hash table of function pointers
 
-
-
-
-
+    while (headersstr[0] != 0 && headersstr[0] != '\r') {
+        char* (*fn)(requestHeaders*, char*) = getHeaderFn(headersstr);
+        headersstr = strchr(headersstr, ':') + 1;
+        headersstr = fn(headers, headersstr);
+        if (headersstr == NULL) { return 400; }
+    }
+    return 0;
 
 
     // first line: replace first and second spaces with null byte
@@ -202,7 +311,6 @@ int parseHeaders(requestHeaders *headers, char *headersstr)
 	}
 	printf("Filename: %s\n", filename);
     */
-    return 0;
 }
 
 /*

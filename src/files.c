@@ -6,7 +6,8 @@
 
 #include "files.h"
 #include "wrappers.h"
-#include "constants.h"
+//#include "constants.h"
+#include "bool/bool.h"
 
 bool isReadable(const char *filepath);
 

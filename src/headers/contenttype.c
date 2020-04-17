@@ -1,3 +1,4 @@
+#include <string.h>
 
 #include "hashtable/hashtable.h"
 #include "headers.h"
@@ -59,14 +60,25 @@ int buildContentTypeHT()
     return 0;
 }
 
-int setContentType(const char *fileExtension, char **contentType)
+int setContentType(bool sameDomainReferer, const char *fileExtension, char **contentType)
 {
     if (contentType == NULL) {
         return 1;
     }
-    *contentType = htLookup(ht, fileExtension);
-    if (*contentType == NULL) {
-        *contentType = htLookup(ht, "default");
+    /*
+    if (strcmp(fileExtension, "js") == 0) {
+        if(sameDomainReferer) { *contentType = "text/javascript"; }
+        else { *contentType = "text/plain"; } // I'm assuming these strings go in the data region...
+    }*/
+    if (strcmp(fileExtension, "js") == 0) {
+        if (sameDomainReferer) { *contentType = htLookup(ht, "js"); }
+        else { *contentType = htLookup(ht, "txt"); }
+    }
+    else {
+        *contentType = htLookup(ht, fileExtension);
+        if (*contentType == NULL) {
+            *contentType = htLookup(ht, "default");
+        }
     }
     return 0;
 }

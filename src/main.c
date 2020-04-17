@@ -28,6 +28,8 @@
 #include "wrappers.h" // only needs this for error codes, this isn't right
 #include "connection.h"
 #include "strings/strings.h"
+#include "headerFnsht.h"
+#include "bool/bool.h"
 
 #define LOGFILE "logs/serverlog.txt"
 #define SSLCONFIGLOCATION "config/certs.txt"
@@ -69,17 +71,22 @@ int main(int argc, char **argv)
 	//char reqFileName[MAXPATH];
 	//char *filebuf;
 
+	int res = buildContentTypeHT();
+	if (res != 0) {
+		fprintf(stderr, "Couldn't build content type hash table.\nExiting.\n");
+		return 1;
+	}
+	res = buildHeaderFnsHT();
+	if (res != 0) {
+		fprintf(stderr, "Couldn't build header functions hash table.\nExiting.\n");
+		return 1;
+	}
+
 	int logfd = open(LOGFILE, O_WRONLY | O_CREAT | O_APPEND, 0660);
 	if (logfd < 0) {
 		perror("Cannot open log file for writing");
 		fprintf(stderr, "Continuing execution without logging to file..");
 		fileLogging = FALSE;
-	}
-
-	int res = buildContentTypeHT();
-	if (res != 0) {
-		fprintf(stderr, "Couldn't build content type hash table.\nExiting.\n");
-		return 1;
 	}
 	
 	printf("Entering accept loop..\n");
@@ -97,6 +104,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+	destroyContentTypeHT();
+	destroyHeaderFnsHT();
 	Close(logfd);
 	Close(serverfd);
 	cleanssl(ctx);

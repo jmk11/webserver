@@ -61,7 +61,7 @@ int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, c
 * if not equal, return 0
 * if equality test ended at delimiter, 1
 * if equality test ended at null byte, 2
-* Updates *s1P to point to current location
+* Updates *s1P to point to next byte, or null byte
 * So provide your string in s1 and comparison in s2
 * Not tested
 */
@@ -72,6 +72,7 @@ int strcmpequntil(const char **s1P, const char *s2, char delim)
     for (;! ((*s1 == delim && *s2 == delim) || *s1 == 0 && *s2 == 0); s1++, s2++) {
         if (*s1 != *s2) { return 0;}
     }*/
+    // ! null checks
 
     const char *s1 = *s1P;
     for (;;s1++, s2++) {
@@ -200,7 +201,28 @@ int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned i
 
 char *terminateAt(char *s, char end) 
 {
+    if (s == NULL) { return NULL;}
     for (; *s != end && *s != 0; s++) {}
+    if (*s == 0) { return NULL; }
 	*s = 0;
+    return s;
+}
+
+// return pointer to first byte that is not space
+const char *skipwsp(const char *s)
+{
+    if (s == NULL) { return NULL; }
+    for (; (*s == ' ' || *s == '\t') && *s != 0; s++) {}
+    return s;
+}
+
+char *stripwsp(char *s)
+{
+    if (s == NULL) { return NULL; }
+    char *end = s + strlen(s) - 1;
+    for (; (*end == ' ' || *end == '\t') && *end != 0; end--) {
+        //*end = 0;
+    }
+    *(end+1) = 0;
     return s;
 }
