@@ -2,8 +2,9 @@
 #define HEADERS_H
 
 #include <stdlib.h>
+#include <time.h>
 
-#include "constants.h"
+//#include "constants.h"
 #include "bool/bool.h"
 
 struct headerPair {
@@ -91,6 +92,7 @@ struct requestHeaders {
     bool ConnectionKeep;
     enum UIR UpgradeInsecureRequests;
     char *Referer;
+    time_t IfModifiedSince;
     //bool CKeepAlive;
 };
 typedef struct requestHeaders requestHeaders;

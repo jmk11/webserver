@@ -1,13 +1,33 @@
 #include <string.h>
 
-#include "hashtable/hashtable.h"
+#include "hashtable/hashtableG.h"
+#include "hashtable/hash.h"
 #include "headers.h"
 
 static HashTable *ht;
 
+bool comparestr(const void *a, const void *b);
+void *copystr(const void *str);
+void freestr(void *str);
+
+bool comparestr(const void *a, const void *b)
+{
+    return strcmp(a, b) == 0;
+}
+
+void *copystr(const void *str)
+{
+    return strdup(str);
+}
+
+void freestr(void *str)
+{
+    free(str);
+}
+
 int buildContentTypeHT()
 {
-    ht = htCreate(150);
+    ht = htCreate(150, comparestr, stringhash, copystr, copystr, freestr, freestr);
     int res = htAdd(ht, "html", "text/html; charset=utf-8");
     if (res != 0) { return 1; }
     res = htAdd(ht, "js", "text/javascript"); // text/plain if not referred from my site?
@@ -52,6 +72,9 @@ int buildContentTypeHT()
     if (res != 0) { return 1; }
 
     res = htAdd(ht, "rar", "application/x-rar-compressed");
+    if (res != 0) { return 1; }
+
+    res = htAdd(ht, "json", "application/json");
     if (res != 0) { return 1; }
     
     res = htAdd(ht, "default", "text/plain");

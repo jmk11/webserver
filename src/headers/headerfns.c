@@ -1,11 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "headerFnsht.h"
+#include "headerfns.h"
 #include "hashtable/hashtableG.h"
 #include "hashtable/hash.h"
 #include "strings/strings.h"
-#include "headerpriv.h"
+//#include "headerpriv.h"
 
 static HashTable *ht;
 // key is string
@@ -32,7 +32,16 @@ bool compareKey(const void *a, const void *b)
     return strcmpequntil((const char **) &a, b, ':') == 1;
 }
 
-//unsigned int hash(const void *, unsigned int)
+unsigned int hash(const void *voidstr, unsigned int hashsize)
+{
+    const char *str = (const char *) voidstr;
+    if (str == NULL) { return 0; } // would be better to have some kind of error
+    unsigned int sum = 0;
+    for (unsigned int i = 0; str[i] != 0 && str[i] != ':'; i++) {
+        sum += str[i];
+    }
+    return sum % hashsize;
+}
 
 void *copyKey(const void *key)
 {
@@ -79,24 +88,27 @@ const struct requestHeaders requestHeadersBase = {
 
 int buildHeaderFnsHT()
 {
-    ht = htCreate(30, &compareKey, &stringhash, &copyKey, &copyValue, &freeKey, &freeValue);
-    int res = htAdd(ht, "Host:", &manageHost);
+    ht = htCreate(30, compareKey, hash, copyKey, copyValue, freeKey, freeValue);
+    int res = htAdd(ht, "Host:", (const void*) manageHost);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "User-Agent:", &manageUA);
+    res = htAdd(ht, "User-Agent:", (const void*) manageUA);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "Accept:", &manageAccept);
+    res = htAdd(ht, "Accept:", (const void*) manageAccept);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "Accept-Language:", &manageAcceptLanguage);
+    res = htAdd(ht, "Accept-Language:", (const void*) manageAcceptLanguage);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "Accept-Encoding:", &manageAcceptEncoding);
+    res = htAdd(ht, "Accept-Encoding:", (const void*) manageAcceptEncoding);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "DNT:", &manageDNT);
+    res = htAdd(ht, "DNT:", (const void*) manageDNT);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "Connection:", &manageConnection);
+    res = htAdd(ht, "Connection:", (const void*) manageConnection);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "Upgrade-Insecure-Requests:", &manageUIR);
+    res = htAdd(ht, "Upgrade-Insecure-Requests:", (const void*) manageUIR);
     if (res != 0) { return 1; }
-    res = htAdd(ht, "Referer:", &manageReferer);
+    res = htAdd(ht, "Referer:", (const void*) manageReferer);
+    if (res != 0) { return 1; }
+    res = htAdd(ht, "If-Modified-Since:", (const void*) manageIfModifiedSince);
+    if (res != 0) { return 1; }
 
     return 0;
 }
@@ -106,7 +118,7 @@ void destroyHeaderFnsHT()
     htDestroy(ht);
 }
 
-char* (*getHeaderFn(char *str))(requestHeaders*, char*) 
+char* (*getHeaderFn(const char *str))(requestHeaders*, char*) 
 {
     return (char *(*)(requestHeaders*, char *)) htLookup(ht, str);
 }

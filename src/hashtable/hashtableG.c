@@ -110,8 +110,10 @@ void *elistFind(elist *l, compareFn compare, const void *key)
 
 void freeList(elist *l, freeFn freeKey, freeFn freeValue)
 {
-    freeList(l->next, freeKey, freeValue);
-    freeKey(l->key);
-    freeValue(l->value);
-    free(l);
+    if (l != NULL) {
+        freeList(l->next, freeKey, freeValue);
+        freeKey(l->key);
+        freeValue(l->value);
+        free(l);
+    }
 }

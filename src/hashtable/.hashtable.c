@@ -41,7 +41,7 @@ HashTable *htCreate(unsigned int size)
 
 int htAdd(HashTable *ht, const char *key, const char *value) 
 {
-    unsigned int keyhash = hash(key, ht->size);
+    unsigned int keyhash = stringhash(key, ht->size);
     ht->table[keyhash] = elistAdd(ht->table[keyhash], key, value);
     if (ht->table[keyhash] == NULL) { return 1;}
     return 0;
@@ -50,7 +50,7 @@ int htAdd(HashTable *ht, const char *key, const char *value)
 char *htLookup(HashTable *ht, const char *key) 
 {
     if (ht == NULL || ht->table == NULL) { return NULL; }
-    unsigned int keyhash = hash(key, ht->size);
+    unsigned int keyhash = stringhash(key, ht->size);
     char *value = elistFind(ht->table[keyhash], key);
     return value;
 }
@@ -98,8 +98,10 @@ char *elistFind(elist *l, const char *key)
 
 void freeList(elist *l)
 {
-    freeList(l->next);
-    free(l->key);
-    free(l->value);
-    free(l);
+    if (l != NULL) {
+        freeList(l->next);
+        free(l->key);
+        free(l->value);
+        free(l);
+    }
 }

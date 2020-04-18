@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 
 #include "strings.h"
@@ -209,7 +210,7 @@ char *terminateAt(char *s, char end)
 }
 
 // return pointer to first byte that is not space
-const char *skipwsp(const char *s)
+char *skipwsp(const char *s)
 {
     if (s == NULL) { return NULL; }
     for (; (*s == ' ' || *s == '\t') && *s != 0; s++) {}

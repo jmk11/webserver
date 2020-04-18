@@ -1,17 +1,20 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "helpers.h"
+#include "helpers/helpers.h"
 #include "headersbase.h"
 #include "strings/strings.h"
-#include "headerpriv.h"
+//#include "headerpriv.h"
 //#include "hashtable/hashtableG.h"
 //#include "statusmessage.h"
-#include "headerFnsht.h"
+#include "headerfns.h"
+//#include "headers.h"
 
 #define HEADERSMAX 1024
 
-char *getResourceRequest(char *request);
+char *extractMethod(requestHeaders *headers, const char *headersstr);
+char *extractResource(requestHeaders *headers, char *headersstr);
+char *manageVersion(requestHeaders *headers, const char *headersstr);
 
 
 int initialiseResponseHeaders(responseHeaders *headers) 
@@ -101,7 +104,7 @@ int produceHeaders(const char *status, char **headersstrP, const responseHeaders
     return headersstrcur - headersstr;
 }
 
-const char *extractMethod(requestHeaders *headers, const char *headersstr) 
+char *extractMethod(requestHeaders *headers, const char *headersstr) 
 {
     if (strcmpequntil(&headersstr, "GET ", ' ') == 1) {
         headers->method = METHOD_GET;
@@ -127,10 +130,12 @@ char *extractResource(requestHeaders *headers, char *headersstr)
         return NULL;
     }
     headers->resource = headersstr+1;
-    return terminateAt(headers->resource, ' ') + 1;
+    char *cur = terminateAt(headers->resource, ' ');
+    if (cur == NULL) { return NULL; }
+    return cur + 1;
 }
 
-const char *manageVersion(requestHeaders *headers, const char *headersstr)
+char *manageVersion(requestHeaders *headers, const char *headersstr)
 {
      if (! (strcmpequntil(&headersstr, "HTTP/1.", '.'))) {
          return NULL;
@@ -272,6 +277,17 @@ char *manageReferer(requestHeaders *headers, char *headersstr)
     // store if same domain or do elsewhere?
 }
 
+char *manageIfModifiedSince(requestHeaders *headers, char *headersstr)
+{
+    headersstr = skipwsp(headersstr);
+    time_t mstime = HTTPDatetotime(headersstr);
+    if (mstime < 0) { return NULL; }
+    headers->IfModifiedSince = mstime;
+    char *cur = strchr(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
+    return cur + 1;
+}
+
 int parseHeaders(requestHeaders *headers, char *headersstr)
 {
     // method:
@@ -284,9 +300,16 @@ int parseHeaders(requestHeaders *headers, char *headersstr)
 
     while (headersstr[0] != 0 && headersstr[0] != '\r') {
         char* (*fn)(requestHeaders*, char*) = getHeaderFn(headersstr);
-        headersstr = strchr(headersstr, ':') + 1;
-        headersstr = fn(headers, headersstr);
-        if (headersstr == NULL) { return 400; }
+        if (fn == NULL) {
+            headersstr = strchr(headersstr, '\r');
+            if (headersstr == NULL || *(++headersstr) != '\n') { return 400; }
+            headersstr++;
+        }
+        else {
+            headersstr = strchr(headersstr, ':') + 1;
+            headersstr = fn(headers, headersstr);
+            if (headersstr == NULL) { return 400; }
+        }
     }
     return 0;
 

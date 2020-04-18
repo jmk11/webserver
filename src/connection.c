@@ -14,7 +14,7 @@
 #include <openssl/ssl.h>
 
 #include "connection.h"
-#include "helpers.h"
+#include "helpers/helpers.h"
 //#include "constants.h"
 #include "headers/headers.h"
 #include "headers/custom.h"
@@ -28,7 +28,7 @@
 int handleRequest(SSL *ssl, char *requestbuf);//, ssize_t requestLength);
 char *buildFilePath(const char *filename);
 int getResource(const char *filename, char newResource[MAXPATH]);
-int loadHTTPHeaders(requestHeaders requestHeaders, off_t fileLength, const char *fileExtension, char **headersbuf);
+int loadHTTPHeaders(requestHeaders requestHeaders, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf);
 char *getExtension(const char *filepath);
 char *nullbyte(void);
 int fileNotFound(SSL *ssl);
@@ -41,7 +41,12 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 
 	// copied
 	SSL *ssl = SSL_new(ctx);
-	SSL_set_fd(ssl, clientfd);
+	if (ssl == NULL) { 
+		return 1;
+	}
+	if (SSL_set_fd(ssl, clientfd) == 0) {
+		retval = 1;
+	}
 	if (SSL_accept(ssl) <= 0) {
 		ERR_print_errors_fp(stderr);
 		retval = 1;
@@ -56,22 +61,24 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 		if (requestLen < 0) {
 			perror("Error recv");
 		}*/
-		requestLen = SSL_read(ssl, requestbuf, BUFSIZ-1);
-		if (requestLen <= 0) {
-			fprintf(stderr, "SSL_read error\n");
-		}
-		else {
-			bool continueConnection = FALSE;
-			do {
+		bool continueConnection = FALSE;
+		do {
+			// set timeout on read
+			requestLen = SSL_read(ssl, requestbuf, BUFSIZ-1);
+			if (requestLen <= 0) {
+				fprintf(stderr, "SSL_read error\n");
+				continueConnection = FALSE;
+			}
+			else {
 				requestbuf[requestLen] = 0;
 				printf("%s\n", requestbuf);
 				int res = handleRequest(ssl, requestbuf);
 				continueConnection = (res >= 0);
 				//retval = res;
-			} while (continueConnection);
-		}
+			}
+		} while (continueConnection);
 	}
-	SSL_shutdown(ssl);
+	SSL_shutdown(ssl); // surely this doesn't need to be called if accept() fails?
 	SSL_free(ssl);
 	return retval;
 }
@@ -103,9 +110,10 @@ int handleRequest(SSL *ssl, char *requestbufedit)//, ssize_t requestLength)
 	res = parseHeaders(&requestHeaders, requestbufedit);
 	if (res != 0) {
 		// return with status code
+		fileNotFound(ssl);
 		return -1;
 	}
-	if (requestHeaders.ConnectionKeep == TRUE) {
+	if (requestHeaders.ConnectionKeep == FALSE) {
 		badReturn = -1;
 	}
 	const char* const requestbuf = requestbufedit;
@@ -131,12 +139,13 @@ int handleRequest(SSL *ssl, char *requestbufedit)//, ssize_t requestLength)
 	printf("Filename: %s\n", resource);
 
 	char *filepath = buildFilePath(resource);
-	filesizePure = getFileDetails(filepath, 0);
+	time_t lastModified;
+	filesizePure = getFileDetails(filepath, &lastModified);
 	if (filesizePure < 0) {
 		switch (filesizePure) {
-			case STAT_NOTMODIFIED: 
+			case STAT_NOTMODIFIED:
 				break; // return 304
-			case STAT_NOTREADABLE: 
+			case STAT_NOTREADABLE:
 				(void*) NULL; // return 404 prob
 			default:
 				fileNotFound(ssl);
@@ -150,10 +159,22 @@ int handleRequest(SSL *ssl, char *requestbufedit)//, ssize_t requestLength)
 		return badReturn;
 	}
 	filesize = (int) filesizePure;
+	if (lastModified <= requestHeaders.IfModifiedSince) {
+		// 304
+		headersbuf = malloc(100);
+		headersLength = snprintf(headersbuf, 100, "HTTP/1.1 304 Not Modified\r\n\r\n");
+		res = SSL_write(ssl, headersbuf, headersLength);
+		free(headersbuf);
+		if (res != headersLength) {
+			perror("Error send 304 header");
+			return 1;
+		}
+		return requestHeaders.ConnectionKeep ? 0 : -1;
+	}
 
 	char *fileextension = getExtension(filepath);
 
-	headersLength = loadHTTPHeaders(requestHeaders, filesize, fileextension, &headersbuf);
+	headersLength = loadHTTPHeaders(requestHeaders, lastModified, filesize, fileextension, &headersbuf);
 	free(fileextension);
 	if (headersLength == -1) {
 		return badReturn;
@@ -238,10 +259,11 @@ int getResource(const char *filename, char newResource[MAXPATH])
 
 // sets *headersbuf to malloced memory that must be freed
 // returns header length
-int loadHTTPHeaders(requestHeaders requestHeaders, off_t fileLength, const char *fileExtension, char **headersbuf) 
+int loadHTTPHeaders(requestHeaders requestHeaders, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf) 
 {
 	responseHeaders headers;
 	initialiseResponseHeaders(&headers);
+	// remove this initialisation and take initialised responseHeaders paramater
 
 	// maximum signed 64 bit number 9,223,372,036,854,775,807 -> 19 digits
 	// content length
@@ -257,6 +279,12 @@ int loadHTTPHeaders(requestHeaders requestHeaders, off_t fileLength, const char 
 	}
 	// this is a bad way of doing it as all the headers must be in ram in different strings at the same time
 
+	char lmbuf[MAXLENGTH];
+	res = timetoHTTPDate(lastModified, lmbuf, MAXLENGTH);
+	if (res == 0) {
+		headers.LastModified.value = lmbuf;
+	}
+	
 	addMyHeaders(&headers);
 	if (requestHeaders.DNT == DNT1) {
 		headers.Tk.value = "N";

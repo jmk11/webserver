@@ -8,7 +8,7 @@ int strcmpequntil(const char **s1, const char *s2, char delim);
 int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSize);
 int strlcat4(char *dst, char **dstcur, const char* const *srces, unsigned int maxSize);
 char *terminateAt(char *s, char end);
-const char *skipwsp(const char *s);
+char *skipwsp(const char *s);
 char *stripwsp(char *s);
 
 #endif /* STRINGS_H */

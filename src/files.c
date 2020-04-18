@@ -15,14 +15,14 @@ bool isReadable(const char *filepath);
 * Returns file size
 * or negative constants to communicate problem
 */
-off_t getFileDetails(const char *filepath, __time_t modifiedSince) 
+off_t getFileDetails(const char *filepath, time_t *modifiedSince) 
 {
 	struct stat filestat;
 	int res = stat(filepath, &filestat);
 	if (res != 0) { /* perror */ return STAT_NOTFOUND; }
 	if (filestat.st_size < 0) { return STAT_NOTFOUND; } // I'm not sure if this is possible..
 	//if (filestat.st_size > INT_MAX) { return STAT_TOOLARGE; }
-	if (filestat.st_mtime <= modifiedSince) { return STAT_NOTMODIFIED; }
+	*modifiedSince = filestat.st_mtime;
 	if (! isReadable(filepath)) {
 		return STAT_NOTREADABLE;
 	}

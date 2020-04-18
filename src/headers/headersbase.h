@@ -19,7 +19,8 @@ const struct responseHeaders responseHeadersBase = {
     .Upgrade = {"Upgrade", NULL},
     .XFrameOptions = {"X-Frame-Options", NULL},
     .XContentTypeOptions = {"X-Content-Type-Options", NULL},
-    .ContentSecurityPolicy =  {"Content-Security-Policy", NULL}
+    .ContentSecurityPolicy =  {"Content-Security-Policy", NULL},
+    .LastModified = {"Last-Modified", NULL}
 };
 
 /*
@@ -50,5 +51,6 @@ const struct requestHeaders requestHeadersBase = {
     .DNT = DNTINIT,
     .ConnectionKeep = TRUE,
     .UpgradeInsecureRequests = UIRINIT,
-    .Referer = NULL
+    .Referer = NULL,
+    .IfModifiedSince = -1
 };

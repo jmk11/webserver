@@ -17,18 +17,18 @@
 //#include <linux/stat.h>
 
 //#include "helpers.h"
-#include "helpers.h"
+#include "helpers/helpers.h"
 #include "constants.h"
 #include "uid.h"
 //#include "headers.h"
 //#include "custom.h"
 #include "ssl/ssl.h"
 #include "common.h"
-#include "contenttype.h"
+#include "headers/contenttype.h"
 #include "wrappers.h" // only needs this for error codes, this isn't right
 #include "connection.h"
 #include "strings/strings.h"
-#include "headerFnsht.h"
+#include "headers/headerfns.h"
 #include "bool/bool.h"
 
 #define LOGFILE "logs/serverlog.txt"
