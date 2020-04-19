@@ -223,7 +223,6 @@ char *manageReferer(requestHeaders *headers, char *headersstr)
 {
     headersstr = skipwsp(headersstr);
     char *cur = terminateAt(headersstr, '\r');
-    if (cur == NULL || *(++cur) != '\n') { return NULL; }
     headers->AcceptLanguage = headersstr;
     return cur + 1;
     // store if same domain or do elsewhere?
@@ -232,11 +231,11 @@ char *manageReferer(requestHeaders *headers, char *headersstr)
 char *manageIfModifiedSince(requestHeaders *headers, char *headersstr)
 {
     headersstr = skipwsp(headersstr);
+    char *cur = terminateAt(headersstr, '\r');
+    if (cur == NULL || *(++cur) != '\n') { return NULL; }
     time_t mstime = HTTPDatetotime(headersstr);
     if (mstime < 0) { return NULL; }
     headers->IfModifiedSince = mstime;
-    char *cur = strchr(headersstr, '\r');
-    if (cur == NULL || *(++cur) != '\n') { return NULL; }
     return cur + 1;
 }
 

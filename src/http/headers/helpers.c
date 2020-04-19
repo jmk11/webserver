@@ -1,5 +1,6 @@
-#define _XOPEN_SOURCE
-#define __USE_XOPEN
+#define _XOPEN_SOURCE // for strptime
+//#define __USE_XOPEN
+#define _DEFAULT_SOURCE // for timegm // not sure about this
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -47,7 +48,15 @@ time_t HTTPDatetotime(const char *headersstr)
     struct tm tm;
     char *cur = strptime(headersstr, DATEFORMAT, &tm);
     if (cur == NULL) { return -1; }
-    time_t t = mktime(&tm);
+    //tm.tm_isdst = 0;
+    //tm.tm_gmtoff = 0;
+    //tm.tm_zone = "GMT";
+    //tm.__tm_gmtoff = 0;
+    //tm.__tm_zone = "GMT";
+    // strptime() does not support %Z. I do not think this manual setting is a proper solution.
+    // and I'm not sure if the isdst value changes depending on time of year
+    //time_t t = mktime(&tm);
+    time_t t = timegm(&tm);
     if (t == -1) { perror("mktime() failed"); }
     return t;
 }
