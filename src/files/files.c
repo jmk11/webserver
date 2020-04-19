@@ -5,9 +5,9 @@
 #include <unistd.h>
 
 #include "files.h"
-#include "wrappers.h"
+#include "../wrappers/wrappers.h"
 //#include "constants.h"
-#include "bool/bool.h"
+#include "../helpers/bool/bool.h"
 
 bool isReadable(const char *filepath);
 

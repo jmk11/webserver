@@ -1,8 +1,14 @@
 #include <string.h>
 
-#include "hashtable/hashtableG.h"
-#include "hashtable/hash.h"
+#include "contenttype.h"
 #include "headers.h"
+#include "../../../helpers/hashtable/hashtableG.h"
+#include "../../../helpers/hashtable/hash.h"
+
+int buildContentTypeHT(void);
+char *setContentType(bool sameDomainReferer, const char *fileExtension);
+void destroyContentTypeHT(void);
+ContentType contentType = {.build = buildContentTypeHT, .setContentType = setContentType, .destroy = destroyContentTypeHT};
 
 static HashTable *ht;
 
@@ -83,27 +89,29 @@ int buildContentTypeHT()
     return 0;
 }
 
-int setContentType(bool sameDomainReferer, const char *fileExtension, char **contentType)
+char *setContentType(bool sameDomainReferer, const char *fileExtension)
 {
+    char *contentTypestr;
+    /*
     if (contentType == NULL) {
         return 1;
-    }
+    }*/
     /*
     if (strcmp(fileExtension, "js") == 0) {
         if(sameDomainReferer) { *contentType = "text/javascript"; }
         else { *contentType = "text/plain"; } // I'm assuming these strings go in the data region...
     }*/
     if (strcmp(fileExtension, "js") == 0) {
-        if (sameDomainReferer) { *contentType = htLookup(ht, "js"); }
-        else { *contentType = htLookup(ht, "txt"); }
+        if (sameDomainReferer) { contentTypestr = htLookup(ht, "js"); }
+        else { contentTypestr = htLookup(ht, "txt"); }
     }
     else {
-        *contentType = htLookup(ht, fileExtension);
-        if (*contentType == NULL) {
-            *contentType = htLookup(ht, "default");
+        contentTypestr = htLookup(ht, fileExtension);
+        if (contentTypestr == NULL) {
+            contentTypestr = htLookup(ht, "default");
         }
     }
-    return 0;
+    return contentTypestr;
 }
 
 void destroyContentTypeHT() {

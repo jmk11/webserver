@@ -1,27 +1,19 @@
+#include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-#include "helpers/helpers.h"
-#include "headersbase.h"
-#include "strings/strings.h"
-//#include "headerpriv.h"
-//#include "hashtable/hashtableG.h"
-//#include "statusmessage.h"
+#include "requestheaders.h"
+#include "requestheadersbase.h"
 #include "headerfns.h"
-//#include "headers.h"
-
-#define HEADERSMAX 1024
+#include "../helpers.h"
+#include "../../statuscodes.h"
+#include "../../../helpers/strings/strings.h"
+#include "../../../helpers/hashtable/hash.h"
 
 char *extractMethod(requestHeaders *headers, const char *headersstr);
-char *extractResource(requestHeaders *headers, char *headersstr);
+char *extractResource(requestHeaders *headers, char *headersstr, char *finish);
+char *extractQueryParameters(requestHeaders *headers, char *headersstr);
 char *manageVersion(requestHeaders *headers, const char *headersstr);
 
-
-int initialiseResponseHeaders(responseHeaders *headers) 
-{
-    *headers = responseHeadersBase;
-    return 0;
-}
 
 int initialiseRequestHeaders(requestHeaders *headers) 
 {
@@ -29,79 +21,11 @@ int initialiseRequestHeaders(requestHeaders *headers)
     return 0;
 }
 
-/*
-int addHeader(const char *header, char *headersstr, unsigned int headersstrlength)
+void freeRequestHeaders(requestHeaders *headers)
 {
-    char *headersstrcur = headersstr;
-    int res = strlcat3(headersstr, &headersstrcur, header, headersstrlength);
-    if (res != 0) { return 1; }
-    int res = strlcat3(headersstr, &headersstrcur, "\r\n", headersstrlength);
-    if (res != 0) { return 1; }
-    return 0;
-    // could just do an snprintf on headersstrcur with remaining length
-}*/
-
-// produce headers string from responseHeaders values
-// return headers length, or -1 if fail
-int produceHeaders(const char *status, char **headersstrP, const responseHeaders *headers)
-{
-    // check that doesn't pass headersmax. if so, realloc
-    char *headersstr = *headersstrP;
-    headersstr = malloc(HEADERSMAX);
-    if (headersstr == NULL) {
-        perror("Can't malloc headersstr");
-        return -1;
+    if (headers != NULL && headers->queryParameters != NULL) {
+        free(headers->queryParameters);
     }
-    //memset(*headersstr, 0, HEADERSMAX);
-    headersstr[0] = 0;
-    char *headersstrcur = headersstr;
-    /*
-    int res = strlcat3(*headersstr, &headersstrcur, "HTTP/1.1 ", HEADERSMAX);
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, statusCode, HEADERSMAX);
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, " ", HEADERSMAX);
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, getStatusMessage(statusCode), HEADERSMAX); // obv change this
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, "\r\n", HEADERSMAX); // obv change this
-    if (res != 0) { free(*headersstr); return 1; }
-    */
-    // const char* pieces[6] = {"HTTP/1.1 ", statusCode, " ", getStatusMessage(statusCode), "\r\n", NULL};
-    const char* pieces[4] = {"HTTP/1.1 ", status, "\r\n", NULL};
-    int res = strlcat4(headersstr, &headersstrcur, pieces, HEADERSMAX);
-    if (res != 0) { free(headersstr); return -1; }
-    /*int bytesWritten = snprintf(*headersstr, HEADERSMAX, "HTTP/1.1 %s OK\r\n", statusCode);
-    char *headersstrcur = *headersstr + bytesWritten;*/
-
-    // I'm relying on struct layout which you aren't supposed to do but I want to try this
-    const headerPair *pair = headers;
-    unsigned int numPairs = sizeof(struct responseHeaders) / sizeof(headerPair);
-    for (unsigned int i = 0; i < numPairs; i++, pair++) {
-        if (pair->value != NULL) {
-            const char* pieces2[5] = {pair->label, ": ", pair->value, "\r\n", NULL};
-            res = strlcat4(headersstr, &headersstrcur, pieces2, HEADERSMAX);
-            if (res != 0) { free(headersstr); return -1; }
-            /*
-            res = strlcat3(*headersstr, &headersstrcur, pair->label, HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            res = strlcat3(*headersstr, &headersstrcur, ": ", HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            res = strlcat3(*headersstr, &headersstrcur, pair->value, HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            res = strlcat3(*headersstr, &headersstrcur, "\r\n", HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            */
-            // can do this with one snprintf, but I would need to calculate the total number of bytes
-            // I intend to write so I can know if it is less
-        }
-    }
-    res = strlcat3(headersstr, &headersstrcur, "\r\n", HEADERSMAX);
-    if (res != 0) { free(headersstr); return -1; }
-    printf("\n%s\n", headersstr);    
-    *headersstrP = headersstr;
-
-    return headersstrcur - headersstr;
 }
 
 char *extractMethod(requestHeaders *headers, const char *headersstr) 
@@ -124,21 +48,49 @@ char *extractMethod(requestHeaders *headers, const char *headersstr)
 // request is null terminated within BUFSIZ
 // edits request to null terminate filename
 // and sets pointer to where filename starts
-char *extractResource(requestHeaders *headers, char *headersstr)
+char *extractResource(requestHeaders *headers, char *headersstr, char *finish)
 {
     if (headersstr[0] != '/') {
         return NULL;
     }
     headers->resource = headersstr+1;
-    char *cur = terminateAt(headers->resource, ' ');
+    // resource should also end at ? and take query parameters
+    // char *cur = terminateAt(headers->resource, ' ');
+    char *cur = strpbrk(headers->resource, " ?");
     if (cur == NULL) { return NULL; }
+    *finish = *cur;
+    *cur = 0;
+    // strprbk vs terminateAtOpts
     return cur + 1;
+}
+
+
+char *extractQueryParameters(requestHeaders *headers, char *headersstr)
+{
+    headers->queryParameters = htCreate(30, strcmp, stringhash, strdup, strdup, free, free);
+    char *cur = headersstr;
+    char *label, *value;
+    char finish = 0;
+    while (finish != ' ') {
+        label = cur;
+        cur = terminateAt(label, '=');
+        if (cur == NULL) { return NULL; }
+        value = cur;
+        cur = terminateAtOpts(value, "& ", &finish);
+        if (cur == NULL) { return NULL; }
+        int res = htAdd(headers->queryParameters, label, value);
+        if (res != 0) { return NULL; }
+        cur = cur + 1;
+        // would be faster if made own compare function to add an equals to key if there isn't one
+    }
+    return cur;
 }
 
 char *manageVersion(requestHeaders *headers, const char *headersstr)
 {
      if (! (strcmpequntil(&headersstr, "HTTP/1.", '.'))) {
          return NULL;
+         // change to return 505 on HTTP2
      }
      if (headersstr[0] == '0') {
          headers->ConnectionKeep = FALSE;
@@ -288,12 +240,19 @@ char *manageIfModifiedSince(requestHeaders *headers, char *headersstr)
     return cur + 1;
 }
 
-int parseHeaders(requestHeaders *headers, char *headersstr)
+/*
+* Possible returned status codes: 400, 501, 505
+*/
+char *parseHeaders(requestHeaders *headers, char *headersstr)
 {
-    // method:
-    if ((headersstr = extractMethod(headers, headersstr)) == NULL) { return 501; }
-    if ((headersstr = extractResource(headers, headersstr)) == NULL) { return 400; }
-    if ((headersstr = manageVersion(headers, headersstr)) == NULL) { return 505; }
+    char finish;
+    if ((headersstr = extractMethod(headers, headersstr)) == NULL) { return STATUS501; }
+    if ((headersstr = extractResource(headers, headersstr, &finish)) == NULL) { return STATUS400; }
+    if (finish == '?') {
+        if ((headersstr = extractQueryParameters(headers, headersstr)) == NULL) { return STATUS400; }
+    }
+    if ((headersstr = manageVersion(headers, headersstr)) == NULL) { return STATUS505; }
+    // string literals are statically allocated according to C standard
 
     // exercise: linked list on stack
     // exercise hash table of function pointers
@@ -302,16 +261,16 @@ int parseHeaders(requestHeaders *headers, char *headersstr)
         char* (*fn)(requestHeaders*, char*) = getHeaderFn(headersstr);
         if (fn == NULL) {
             headersstr = strchr(headersstr, '\r');
-            if (headersstr == NULL || *(++headersstr) != '\n') { return 400; }
+            if (headersstr == NULL || *(++headersstr) != '\n') { return STATUS400; }
             headersstr++;
         }
         else {
             headersstr = strchr(headersstr, ':') + 1;
             headersstr = fn(headers, headersstr);
-            if (headersstr == NULL) { return 400; }
+            if (headersstr == NULL) { return STATUS400; }
         }
     }
-    return 0;
+    return NULL;
 
 
     // first line: replace first and second spaces with null byte

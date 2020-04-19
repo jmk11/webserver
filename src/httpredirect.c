@@ -7,13 +7,9 @@
 
 #include "uid.h"
 #include "constants.h"
-//#include "helpers.h"
 #include "common.h"
-//#include "headers.h"
-//#include "helpers/helpers.h"
-#include "helpers/helpers.h"
-#include "wrappers.h"
-#include "bool/bool.h"
+#include "wrappers/wrappers.h"
+#include "helpers/bool/bool.h"
 
 #define RESPSIZE 300
 #define DOMAINSIZE 100
@@ -47,18 +43,10 @@ int main(int argc, char **argv)
 	// after binding port 80, can drop permissions
 	dropPermissions(UID);
 
-	//int res;
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
 	int clientfd;
-	//char reqFileName[MAXPATH];
-	//char *filebuf;
-    //char *response = "HTTP/1.1 301 Moved Permanently\r\nLocation: https://localhost\r\n\r\n";
-	//char response[RESPSIZE];
 	char httpsdomain[DOMAINSIZE];
-	//char requestbuf[REQSIZE];
-	//char *nullbyte = "\0";
-	//char *resource;
 	bool fileLogging = TRUE;
 
 	int res = readDomain(httpsdomain);

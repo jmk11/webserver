@@ -1,8 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
-
+//#include <stdbool.h>
+// what is the c standard for bool
+// can you do stuff like bool a = (b > 0)
 
 #include "strings.h"
+//#include "bool/bool.h"
 
 
 // 0: success
@@ -200,6 +203,9 @@ int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned i
     }*/
 }
 
+/*
+* Returns pointer to new null byte, or NULL if didn't find end before s terminated
+*/
 char *terminateAt(char *s, char end) 
 {
     if (s == NULL) { return NULL;}
@@ -207,6 +213,25 @@ char *terminateAt(char *s, char end)
     if (*s == 0) { return NULL; }
 	*s = 0;
     return s;
+}
+
+/*
+* Terminate string at first of given list (string) of options
+* Returns pointer to new null byte, or NULL if didn't find end before s terminated
+*/
+char *terminateAtOpts(char *s, const char *ends, char *found)
+{
+    if (s == NULL || ends == NULL) { return NULL;}
+    for (; *s != 0; s++) {
+        for (const char *endcur = ends; *endcur != 0; endcur++) {
+            if (*s == *endcur) {
+                *s = 0;
+                if (found != NULL) { *found = *endcur; }
+                return s;
+            }
+        }
+    }
+    return NULL;
 }
 
 // return pointer to first byte that is not space

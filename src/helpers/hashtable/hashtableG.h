@@ -1,9 +1,19 @@
 #ifndef HASHTABLEG_H
 #define HASHTABLEG_H
 
-#include "bool/bool.h"
+#include "../bool/bool.h"
 
 typedef struct HashTable HashTable;
+
+/*
+struct HashTable {
+    HashTableI *table;
+    int (*add)(const void *key, const void *value);
+    void* (*value)(const void *key);
+    void (*destroy)(void);
+};
+// It can't not pass the hashtable itself becuase you have no other way to get it
+*/
 
 typedef bool (*compareFn) (const void *, const void *);
 typedef unsigned int (*hashFn) (const void *, unsigned int);

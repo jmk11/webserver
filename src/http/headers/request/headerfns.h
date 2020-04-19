@@ -1,7 +1,7 @@
 #ifndef HEADERFNSHT_H
 #define HEADERFNSHT_H
 
-#include "headers.h"
+#include "requestheaders.h"
 
 int buildHeaderFnsHT(void);
 void destroyHeaderFnsHT(void);

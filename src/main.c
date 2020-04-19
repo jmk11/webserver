@@ -16,20 +16,16 @@
 //#include <fcntl.h>
 //#include <linux/stat.h>
 
-//#include "helpers.h"
-#include "helpers/helpers.h"
 #include "constants.h"
 #include "uid.h"
-//#include "headers.h"
-//#include "custom.h"
-#include "ssl/ssl.h"
 #include "common.h"
-#include "headers/contenttype.h"
-#include "wrappers.h" // only needs this for error codes, this isn't right
 #include "connection.h"
-#include "strings/strings.h"
-#include "headers/headerfns.h"
-#include "bool/bool.h"
+#include "wrappers/wrappers.h" // only needs this for error codes, this isn't right
+#include "ssl/ssl.h"
+#include "helpers/strings/strings.h"
+#include "helpers/bool/bool.h"
+#include "http/headers/response/contenttype.h"
+#include "http/headers/request/headerfns.h"
 
 #define LOGFILE "logs/serverlog.txt"
 #define SSLCONFIGLOCATION "config/certs.txt"
@@ -71,7 +67,8 @@ int main(int argc, char **argv)
 	//char reqFileName[MAXPATH];
 	//char *filebuf;
 
-	int res = buildContentTypeHT();
+	//int res = buildContentTypeHT();
+	int res = contentType.build(); // get rid of this, main shouldn't know about this maybe
 	if (res != 0) {
 		fprintf(stderr, "Couldn't build content type hash table.\nExiting.\n");
 		return 1;
@@ -104,7 +101,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	destroyContentTypeHT();
+	//destroyContentTypeHT();
+	contentType.destroy();
 	destroyHeaderFnsHT();
 	Close(logfd);
 	Close(serverfd);

@@ -1,9 +1,7 @@
-#subdir('bool')
-subdir('hashtable') # hashtable_lib_static
-subdir('wrappers')  # wrappers_dep
-subdir('strings')   # strings_lib_static
-subdir('helpers')   # helpers_lib_static
-subdir('headers')   # headers_lib_static
+subdir('helpers')   # hashtable_lib_static, strings_lib_static
+subdir('wrappers')  # wrappers_lib_static
+subdir('files')     # files_lib_static
+subdir('http')      # http_lib_static
 #subdir('common')
 openssl = dependency('libssl')
 crypto = dependency('libcrypto')
@@ -12,19 +10,20 @@ subdir('ssl') # ssl_lib_static
 common_sources = ['common.c', 'common.h', 'constants.h', 'uid.h']
 common_lib_static = static_library('common',
                                     common_sources,
-                                    dependencies: wrappers_dep)
+                                    link_with: wrappers_lib_static)
 
-webserver_sources = ['main.c', 'connection.c', 'connection.h', 'files.c', 'files.h']
+webserver_sources = ['main.c', 'connection.c', 'connection.h']
 executable('webserver', webserver_sources,
-            link_with: [hashtable_lib_static, common_lib_static, ssl_lib_static, strings_lib_static, helpers_lib_static, headers_lib_static],
-            dependencies: [wrappers_dep, openssl],
+            link_with: [hashtable_lib_static, common_lib_static, ssl_lib_static, strings_lib_static, http_lib_static, wrappers_lib_static],
+            dependencies: [openssl],
             install: true)
 
-executable('http', 
-            'http.c',
-            link_with: [common_lib_static, helpers_lib_static],
-            dependencies: wrappers_dep, # wrappers_dep is only here for error numbers, bad
+executable('httpredirect', 
+            'httpredirect.c',
+            link_with: [common_lib_static],
             install: true)
+            #dependencies: wrappers_dep, # wrappers_dep is only here for error numbers, bad
+
 
 #add_project_arguments(['-Wall', '-Wextra', '-pedantic', '-g'], language : 'c')
 #hashtable = declare_dependency(link_with : hashtable_lib_static, include_directories : 'hashtable')

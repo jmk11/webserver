@@ -9,7 +9,6 @@
 #include <arpa/inet.h>
 #include <malloc.h>
 
-//#include "constants.h"
 #include "wrappers.h"
 
 int Socket(int domain, int type, int protocol)

@@ -2,9 +2,9 @@
 #include <stdlib.h>
 
 #include "headerfns.h"
-#include "hashtable/hashtableG.h"
-#include "hashtable/hash.h"
-#include "strings/strings.h"
+#include "../../../helpers/hashtable/hashtableG.h"
+#include "../../../helpers/hashtable/hash.h"
+#include "../../../helpers/strings/strings.h"
 //#include "headerpriv.h"
 
 static HashTable *ht;

@@ -3,6 +3,8 @@
 
 #include <netinet/in.h>
 
+int getPort(const char *string, unsigned short *port);
+
 void printSource(struct sockaddr_in addrStruct, const char *prefix);
 int dropPermissions(unsigned short goaluid);
 int buildSocket(unsigned short port);

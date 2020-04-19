@@ -6,8 +6,9 @@
 
 #include "common.h"
 #include "constants.h"
-//#include "helpers.h"
-#include "wrappers.h"
+#include "wrappers/wrappers.h"
+
+#define MAXPORT 65535
 
 
 void printSource(struct sockaddr_in addrStruct, const char *prefix)
@@ -93,4 +94,15 @@ int buildSocket(unsigned short port)
 	Bind(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
 	Listen(sockfd, 5);
 	return sockfd;
+}
+
+int getPort(const char *string, unsigned short *port)
+{
+    long lport = strtol(string, NULL, 0);
+    if (lport > MAXPORT || lport < 0) {
+        fprintf(stderr, "Provided port number not in range. Legal port numbers 0..%d", MAXPORT);
+        return 1;
+    }
+    *port = (unsigned short) lport;
+    return 0;
 }

@@ -3,8 +3,7 @@
 #include <unistd.h>
 
 #include "ssl.h"
-//#include "helpers.h"
-#include "../strings/strings.h"
+#include "../helpers/strings/strings.h"
 
 #define PATHLENGTH 150
 
@@ -109,7 +108,7 @@ int readCertLocation(const char *configlocation, char certLocation[PATHLENGTH], 
     }
     // obviously deal with size etc.
     char buf[500];
-    int bytesRead = read(fd, buf, 500-1);
+    ssize_t bytesRead = read(fd, buf, 500-1);
     if (bytesRead <= 0) {
         perror("Can't read config file");
         return 1;
