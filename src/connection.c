@@ -19,6 +19,7 @@
 #include "http/statuscodes.h"
 #include "http/response.h"
 #include "helpers/bool/bool.h"
+#include "helpers/strings/strings.h"
 
 
 #define FILESDIRECTORY "files/"
@@ -28,10 +29,12 @@ int getResource(const char *filename, char newResource[MAXPATH]);
 //int setHTTPHeaders(responseHeaders headers, requestHeaders requestHeaders, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf);
 char *getExtension(const char *filepath);
 char *nullbyte(void);
-char *buildFilePath(const char *filename);
+int buildFilePath(const char *filename, char *filepath, unsigned int filepathsize);
 //int fileNotFound(SSL *ssl);
-int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders) ;
+int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode);
 //int fileNotAvailable(SSL *ssl);
+int sendError(SSL *ssl, responseHeaders *headers, const char *statusCode, const requestHeaders *requestHeaders);
+int sendGoodResponse(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *filepath, time_t lastModified, int filesize);
 
 int handleConnection(int clientfd, SSL_CTX *ctx) {
 	char requestbuf[BUFSIZ];
@@ -92,28 +95,26 @@ int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 	printf("Response:\n");
 	//int badReturn = 1;
 
-	//char *filename = NULL;
-	//char *headersbuf = NULL;
-	//off_t filesize;
 	off_t filesizePure;
 	int filesize;
-	//int headersLength;
-	// the whole point of headersLength is eventually to be used as int parameter to ssl_write
-	// but along the way i would like to be able to assume it is unsigned
-	// so what to do?
 	int res;
 	char resource[MAXPATH];
+	char filepath[MAXPATH];
+	//char fileextension[MAXPATH];
+	//char *headersbuf;
+	//int headersLength;
 
 	struct responseHeaders headers;
 	initialiseResponseHeaders(&headers);
 
 	struct requestHeaders requestHeaders;
 	initialiseRequestHeaders(&requestHeaders);
+	// parse headers
 	char *statusCode = parseHeaders(&requestHeaders, requestbuf);
 	if (statusCode != NULL) {
 		// return with status code
-		setGenericHeaders(&headers, &requestHeaders);
-		sendResponse(ssl, statusCode, &headers, requestHeaders.method, NULL, 0);
+		//setGenericHeaders(&headers, &requestHeaders);
+		sendError(ssl, &headers, statusCode, &requestHeaders);
 		return requestHeaders.ConnectionKeep ? 1 : -1;
 	}
 	// do not change requestbuf from this point on
@@ -124,55 +125,94 @@ int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 		return requestHeaders.ConnectionKeep ? 1 : -1;
 	}*/
 	
+	// Convert requested resource to actual resource name
 	res = getResource(requestHeaders.resource, resource);
 	if (res != 0) {
-		fileNotFound(ssl, &headers, &requestHeaders);
+		fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
 		return requestHeaders.ConnectionKeep ? 1 : -1;
 	}
 	printf("Filename: %s\n", resource);
 
-	char *filepath = buildFilePath(resource);
+	// Convert resource name to file path
+	//char *filepath = buildFilePath(resource);
+	res = buildFilePath(resource, filepath, MAXPATH);
+	if (res != 0) {
+		fileNotFound(ssl, &headers, &requestHeaders, STATUS_URITOOLONG);
+	}
+
+	// Get file size and last modified time
 	time_t lastModified;
 	filesizePure = getFileDetails(filepath, &lastModified);
 	if (filesizePure < 0) {
 		switch (filesizePure) {
 			case STAT_NOTREADABLE:
-				fileNotFound(ssl, &headers, &requestHeaders);
+				fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
 				break;
 			case STAT_NOTFOUND:
-				fileNotFound(ssl, &headers, &requestHeaders);
+				fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
 				break;
 			/*default:
 				fileNotFound(ssl);
-				free(filepath);
 				return badReturn;*/
 		}
-		free(filepath);
 		return requestHeaders.ConnectionKeep ? 1 : -1;
 	}
 	else if (filesizePure > INT_MAX) {
-		res = fileNotFound(ssl, &headers, &requestHeaders);
-		free(filepath);
+		res = fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
 		return requestHeaders.ConnectionKeep ? res : -1;
 	}
 	filesize = (int) filesizePure;
 
+	// check for 304 not modified
 	if (lastModified <= requestHeaders.IfModifiedSince) {
-		setGenericHeaders(&headers, &requestHeaders);
-		res = sendResponse(ssl, STATUS_NOTMODIFIED, &headers, requestHeaders.method, NULL, 0);
+		res = sendError(ssl, &headers, STATUS_NOTMODIFIED, &requestHeaders);
+		// obv this isn't an error but what I mean is that there is no body
 		return requestHeaders.ConnectionKeep ? res : -1;
 	}
 
-	char *fileextension = getExtension(filepath);
-
-	setGenericHeaders(&headers, &requestHeaders);
-	setFileHeaders(&headers,&requestHeaders, lastModified, filesize, fileextension);
+	// set headers based on collected information
+	/*setGenericHeaders(&headers, &requestHeaders);
+	setFileHeaders(&headers, &requestHeaders, lastModified, filesize, fileextension);*/
 	//headersLength = setHTTPHeaders(responseHeaders, requestHeaders, lastModified, filesize, fileextension, &headersbuf);
+	res = sendGoodResponse(ssl, &headers, &requestHeaders, filepath, lastModified, filesize);
+	return requestHeaders.ConnectionKeep ? res : -1;
+}
+
+// name
+int sendGoodResponse(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *filepath, time_t lastModified, int filesize)
+{
+	int res;
+	// get file extension for MIME type
+	char *fileextension = getExtension(filepath);
+	char *headersbuf;
+	int headersLength = buildHeaders(headers, requestHeaders, STATUS_OK, lastModified, filesize, fileextension, &headersbuf);
+	if (headersLength < 0) {
+		return 1;
+	}
 	free(fileextension);
 
-	res = sendResponse(ssl, STATUS_OK, &headers, requestHeaders.method, filepath, filesize);
-	free(filepath);
-	return requestHeaders.ConnectionKeep ? res : -1;
+	// Send headers and file
+	if (requestHeaders->method == METHOD_GET) {
+		res = sendResponse(ssl, headersbuf, headersLength, filepath, filesize);
+	}
+	else {
+		res = sendResponse(ssl, headersbuf, headersLength, NULL, 0);
+	}
+	free(headersbuf);
+	return 0;
+}
+
+int sendError(SSL *ssl, responseHeaders *headers, const char *statusCode, const requestHeaders *requestHeaders)
+{
+	int retval = 1;
+	char *headersbuf;
+	int headersLength = buildHeadersNoBody(headers, requestHeaders, statusCode, &headersbuf);
+	if (headersLength > 0) {
+		sendResponse(ssl, headersbuf, headersLength, NULL, 0);
+		retval = 0;
+	}
+	free(headersbuf);
+	return retval;
 }
 
 // filename length < bufsiz
@@ -207,8 +247,8 @@ char *getExtension(const char *filepath) {
 	mode_t fileType = filestat.st_mode & S_IFMT;
 	if (fileType == S_IFLNK) {
 		// symbolic link
-		char *res = realpath(filepath, targetpath);
-		if (res == NULL) {
+		char *resC = realpath(filepath, targetpath);
+		if (resC == NULL) {
 			perror("realpath failed");
 			return nullbyte();
 		}
@@ -238,71 +278,76 @@ char *nullbyte() {
 	return byte;
 }
 
-char *buildFilePath(const char *filename)
+int buildFilePath(const char *filename, char *filepath, unsigned int filepathsize)
 {
 	char *prefix = FILESDIRECTORY;
-	char *filepath = malloc(strlen(filename) + strlen(prefix) + 1);
+	/*char *filepath = malloc(strlen(filename) + strlen(prefix) + 1);
 	if (filepath == NULL) {
 		perror("Can't malloc filepath");
 		return NULL;
+	}*/
+	const char *strs[3] = {prefix, filename, NULL};
+	filepath[0] = 0;
+	int res = strlcat4(filepath, NULL, strs, filepathsize);
+	if (res != 0) {
+		return 1;
 	}
-	strcpy(filepath, prefix);
-	strcat(filepath, filename);
+	/*strcpy(filepath, prefix);
+	strcat(filepath, filename);*/
 	printf("Filepath: %s\n", filepath);
-	return filepath;
+	return 0;
 }
 
 /*
 * atm: returns 0 on success and 1 on failure
 */
+int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode) 
+{
+	char *headersbuf;
+	int res;
+	int headersLength;
+	char filepath[MAXPATH];
+
+	res = buildFilePath("404.html", filepath, MAXPATH);
+	if (res != 0) { return 1; }
+	time_t lastModified;
+	off_t filesizePure = getFileDetails(filepath, &lastModified);
+	if (filesizePure < 0 || filesizePure > INT_MAX) {
+		fprintf(stderr, "Could not access 404.html to send\n");
+		//headersLength = buildHeaders(headers, requestHeaders, STATUS_NOTFOUND, -1, -1, NULL, &headersbuf);
+		headersLength = buildHeadersNoBody(headers, requestHeaders, statusCode, &headersbuf);
+		if (headersLength < 0) { return 1; }
+		res = sendResponse(ssl, headersbuf, headersLength, NULL, 0);
+	}
+	else {
+		int filesize = (int) filesizePure;
+		headersLength = buildHeaders(headers, requestHeaders, statusCode, -1, filesize, "html", &headersbuf);
+		res = sendResponse(ssl, headersbuf, headersLength, filepath, filesize);
+	}
+	return res;
+}
+/*
 int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders) 
 {
 	int res;
 	setGenericHeaders(headers, requestHeaders);
-	char *filepath = buildFilePath("404.html");
-	if (filepath == NULL) { return 1; }
+	char filepath[MAXPATH];
+	res = buildFilePath("404.html", filepath, MAXPATH);
+	if (res != 0) { return 1; }
 	time_t modifiedSince;
 	off_t filesizePure = getFileDetails(filepath, &modifiedSince);
 	if (filesizePure < 0 || filesizePure > INT_MAX) {
 		fprintf(stderr, "Could not access 404.html to send\n");
-		res = sendResponse(ssl, STATUS_NOTFOUND, headers, requestHeaders->method, NULL, 0);
+		res = sendResponse(ssl, STATUS_NOTFOUND, headers, NULL, 0);
 	}
 	else {
 		int filesize = (int) filesizePure;
 		setFileHeaders(headers, requestHeaders, 0, filesize, "html");
-		res = sendResponse(ssl, STATUS_NOTFOUND, headers, requestHeaders->method, filepath, filesize);
-		free(filepath);
+		res = sendResponse(ssl, STATUS_NOTFOUND, headers, filepath, filesize);
 	}
 	return res;
-
-	/*
-	unsigned int headersMax = 500;
-	char *headersbuf = malloc(headersMax);
-	//headersbuf[0] = 0;
-	//char *headersbufcur = headersbuf;
-	//strlcat3(headersbuf, &headersbufcur, "HTTP/1.1 404 Not Found\r\n\r\n", headersMax);
-	//int headersLength = headersbufcur - headersbuf;
-	int headersLength = snprintf(headersbuf, headersMax, "HTTP/1.1 404 Not Found\r\n\r\n");
-	// I want to strcpy and return number of bytes copied
-	//int res = send(clientfd, headersbuf, headersLength, 0);
-	int res = SSL_write(ssl, headersbuf, headersLength);
-	free(headersbuf);
-	if (res != headersLength) {
-		perror("Error send 404 header");
-		return 1;
-	}
-
-	
-	char *response = "404";
-	//res = send(clientfd, response, strlen(response), 0);
-	res = SSL_write(ssl, response, strlen(response));
-	if (res != strlen(response)) {
-		perror("Error send file");
-		return 1;
-	}
-	return 0;
-	*/
 }
+*/
 
 /*
 int fileNotAvailable(SSL *ssl) 

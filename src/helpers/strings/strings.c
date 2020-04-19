@@ -149,13 +149,14 @@ char strlcat2(char *dst, const char *src, unsigned int maxSize, unsigned int *cu
     return 0;
 }
 
-// Takes array of strings to concatenate to dst
-// Array must be finished with a null pointer
-// starts writing from *dstCur and updates *dstCur to next byte to write into (ie to null byte)
-// if dstCur is NULL, starts writing from dstStart and obv doesn't update dstcur
-// 0: success
-// 1: not enough space for src
-// !!!! not tested
+/* Takes array of strings to concatenate to dst
+ * Array must be finished with a null pointer
+ * starts writing from *dstCur and updates *dstCur to next byte to write into (ie to null byte)
+ * if dstCur is NULL, starts writing from dstStart and obv doesn't update dstcur
+ * 0: success
+ * 1: not enough space for src
+ * !!!! not tested
+*/
 int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned int maxSize)
 {
     const char* cursrc;

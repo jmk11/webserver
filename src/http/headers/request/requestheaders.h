@@ -24,6 +24,7 @@ enum Method {
     METHOD_PROPFIND,
     METHOD_VIEW
 };
+// could do struct of constants
 
 enum DNT {
     DNTINIT,

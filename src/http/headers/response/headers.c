@@ -29,6 +29,7 @@ int addHeader(const char *header, char *headersstr, unsigned int headersstrlengt
 
 // produce headers string from responseHeaders values
 // return headers length, or -1 if fail
+// sets *headersstrP to malloced memory
 int produceHeaders(const char *status, char **headersstrP, const responseHeaders *headers)
 {
     // check that doesn't pass headersmax. if so, realloc
