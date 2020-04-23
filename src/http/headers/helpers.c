@@ -9,24 +9,24 @@
 #define DATEFORMAT "%a, %d %b %Y %H:%M:%S %Z"
 
 
+// return number of bytes written, -1 for failure
 int getHTTPDate(char *buf, unsigned int size)
 {
     time_t t = time(NULL);
     if (t == -1) {
         perror("time() failed");
-        return 1;
+        return -1;
     }
 	struct tm *tm = gmtime(&t);
     if (tm == NULL) {
         perror("gmtime() failed");
-        return 1;
+        return -1;
     }
 	size_t bytesWritten = strftime(buf, size, DATEFORMAT, tm);
     if (bytesWritten <= 0) {
         fprintf(stderr, "strftime failed in getHTTPDate");
-        return 1;
     }
-    return 0;
+    return bytesWritten;
 }
 
 int timetoHTTPDate(time_t time, char *buf, unsigned int size)

@@ -108,7 +108,7 @@ void setGenericHeaders(char *datebuf, unsigned int datebufsize, responseHeaders 
 {
 	// date
 	int res = getHTTPDate(datebuf, datebufsize);
-	if (res == 0) {
+	if (res > 0) {
 		headers->Date.value = datebuf;
 	}
 	// DNT

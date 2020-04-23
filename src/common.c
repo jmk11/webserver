@@ -63,6 +63,19 @@ int logSource(int logfd, struct sockaddr_in addrStruct)
 	return 0;
 }
 
+int stringIP(char addrstr[16], in_addr_t ip)
+{
+	in_addr_t addrNum = ntohl(ip);
+	snprintf (
+		addrstr, 16, "%u.%u.%u.%u",
+		addrNum >> 24 & 0xff,
+		addrNum >> 16 & 0xff,
+		addrNum >>  8 & 0xff,
+		addrNum       & 0xff
+	);
+	return 0;
+}
+
 int dropPermissions(unsigned short goaluid) {
 	printf("Dropping permissions after binding...\n");
 	// !! also need to drop group privileges!
@@ -106,3 +119,4 @@ int getPort(const char *string, unsigned short *port)
     *port = (unsigned short) lport;
     return 0;
 }
+

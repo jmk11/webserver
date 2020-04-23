@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 		else {
 			printSource(clientAddr, NULL);
 			if (fileLogging) { logSource(logfd, clientAddr); }
-			handleConnection(clientfd, ctx);
+			handleConnection(clientfd, ctx, logfd, clientAddr);
 			close(clientfd);
 			// what do if can't close client socket?
 		}

@@ -14,17 +14,19 @@
 #include <openssl/ssl.h>
 
 #include "connection.h"
+#include "logging.h"
 #include "wrappers/wrappers.h" // only needs this for error codes, this isn't right
 #include "files/files.h"
 #include "http/statuscodes.h"
 #include "http/response.h"
 #include "helpers/bool/bool.h"
 #include "helpers/strings/strings.h"
+#include "http/headers/helpers.h"
 
 
 #define FILESDIRECTORY "files/"
 
-int handleRequest(SSL *ssl, char *requestbuf);//, ssize_t requestLength);
+int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source);
 int getResource(const char *filename, char newResource[MAXPATH]);
 //int setHTTPHeaders(responseHeaders headers, requestHeaders requestHeaders, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf);
 char *getExtension(const char *filepath);
@@ -36,7 +38,7 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 int sendError(SSL *ssl, responseHeaders *headers, const char *statusCode, const requestHeaders *requestHeaders);
 int sendGoodResponse(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *filepath, time_t lastModified, int filesize);
 
-int handleConnection(int clientfd, SSL_CTX *ctx) {
+int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source) {
 	char requestbuf[BUFSIZ];
 	ssize_t requestLen;
 	int retval = 0;
@@ -74,7 +76,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 			else {
 				requestbuf[requestLen] = 0;
 				printf("%s\n", requestbuf);
-				int res = handleRequest(ssl, requestbuf);
+				int res = handleRequest(ssl, requestbuf, logfd, source);
 				continueConnection = (res >= 0);
 				//retval = res;
 			}
@@ -90,7 +92,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx) {
 * Return 1 on bad and continue connection
 * Return -1 on finish connection
 */
-int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
+int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source)//, ssize_t requestLength)
 {
 	printf("Response:\n");
 	//int badReturn = 1;
@@ -124,6 +126,7 @@ int handleRequest(SSL *ssl, char *requestbuf)//, ssize_t requestLength)
 		sendResponse(ssl, STATUS_METHODNOTALLOWED, &headers, &requestHeaders, NULL, 0);
 		return requestHeaders.ConnectionKeep ? 1 : -1;
 	}*/
+	logRequest(logfd, source, &requestHeaders);
 	
 	// Convert requested resource to actual resource name
 	res = getResource(requestHeaders.resource, resource);
@@ -326,6 +329,8 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 	}
 	return res;
 }
+
+
 /*
 int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders) 
 {
