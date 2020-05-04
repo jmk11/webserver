@@ -13,3 +13,13 @@ ninja install
 
 Executables will be placed in $installdirectory.  
 Website files go in $installdirectory/files
+Configuration file must be in $installdirectory/config
+
+Run with:
+```bash
+./webserver $port
+```
+Run HTTP server with:
+```bash
+./http $port
+```
