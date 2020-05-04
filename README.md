@@ -5,7 +5,7 @@ Combines with directory listings made by htmldirs repo.
 
 Build with:
 ```bash
-$ meson build --prefix="$installdirectory"
+meson build --prefix="$installdirectory"
 cd build
 ninja
 ninja install
