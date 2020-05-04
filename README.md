@@ -12,7 +12,7 @@ ninja install
 ```
 
 Executables will be placed in $installdirectory.  
-Website files go in $installdirectory/files
+Website files go in $installdirectory/files.  
 Configuration file must be in $installdirectory/config
 
 Run with:
