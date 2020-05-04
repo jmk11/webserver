@@ -10,3 +10,6 @@ cd build
 ninja
 ninja install
 ```
+
+Executables will be placed in $installdirectory.
+Website files go in $installdirectory/files
