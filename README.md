@@ -11,5 +11,5 @@ ninja
 ninja install
 ```
 
-Executables will be placed in $installdirectory.
+Executables will be placed in $installdirectory.  
 Website files go in $installdirectory/files
