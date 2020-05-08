@@ -26,6 +26,23 @@ elist *elistAdd(elist *l, compareFn compare, copyFn copyKey, copyFn copyValue, c
 void *elistFind(elist *l, compareFn compare, const void *key);
 void freeList(elist *l, freeFn freeKey, freeFn freeValue);
 
+/*
+* Create generic hash table and return pointer
+* Size: number of elements in hash table. Less -> more collisions
+* compareKey: bool fn (const void *a, const void *b)
+*       Used to compare keys when looking up hashtable and updating value. Must return true if keys are equal, false if not
+* hash: unsigned int fn (const void *key, unsigned int size)   
+*       Hash function. Returns index of item in hash table array. More optimised for inputs -> less collisions.
+*       Return value must be 0 <= x < size
+* copyKey: void *fn (const void *key)
+*       Used to copy key provided to htAdd(), for storage in table. Returns a new copy of key.
+* copyValue: void *fn (const void *value)
+*       Used to copy value provided to htAdd(), for storage in table. Returns a new copy of value.
+* freeKey: void fn (void *key)
+*       Used to free object returned from copyKey, when hash table is destroyed
+* freeValue: void fn (void *value)
+*       Used to free object returned from copyValue, when hash table is destroyed
+*/
 HashTable *htCreate(unsigned int size, compareFn compareKey, hashFn hash, 
     copyFn copyKey, copyFn copyValue, freeFn freeKey, freeFn freeValue)
 {
@@ -49,7 +66,10 @@ HashTable *htCreate(unsigned int size, compareFn compareKey, hashFn hash,
     return ht;
 }
 
-// return 0 for success and 1 for failure
+/*
+* Add element to hashtable as ht[key] = value
+* return 0 for success and 1 for failure
+*/
 int htAdd(HashTable *ht, const void *key, const void *value) 
 {
     unsigned int keyhash = ht->hash(key, ht->size);
@@ -58,7 +78,10 @@ int htAdd(HashTable *ht, const void *key, const void *value)
     return 0;
 }
 
-// return pointer for success and NULL on failure
+/*
+* Returns pointer to value for given key
+* Returns NULL on key not found
+*/
 void *htLookup(HashTable *ht, const void *key) 
 {
     if (ht == NULL || ht->table == NULL) { return NULL; }
@@ -67,6 +90,9 @@ void *htLookup(HashTable *ht, const void *key)
     return value;
 }
 
+/*
+* Destroy (free) hashtable
+*/
 void htDestroy(HashTable *ht)
 {
     for (unsigned int i = 0; i < ht->size; i++) {

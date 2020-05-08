@@ -9,7 +9,7 @@
 #define STAT_NOTREADABLE -3
 #define STAT_NOTMODIFIED -4
 
-off_t getFileDetails(const char *filepath, time_t *modifiedSince);
+off_t getFileDetails(const char *filepath, time_t *lastModified);
 int loadRequestedFile(const char *filepath, char **filebuf, size_t filesize);
 
 #endif /* FILES_H */

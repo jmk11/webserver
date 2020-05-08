@@ -1,6 +1,7 @@
 ./src/uid.h
-.history/*
-build*/*
+.history/
+build*/
 bin/*
 .gdb_history
-.vscode/*
+.vscode/
+.*

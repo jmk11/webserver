@@ -63,8 +63,12 @@ int logSource(int logfd, struct sockaddr_in addrStruct)
 	return 0;
 }
 
+/*
+* Convert IP from addrstruct to string
+*/
 int stringIP(char addrstr[16], in_addr_t ip)
 {
+	// from a 1521 sample code
 	in_addr_t addrNum = ntohl(ip);
 	snprintf (
 		addrstr, 16, "%u.%u.%u.%u",
@@ -95,6 +99,10 @@ int dropPermissions(unsigned short goaluid) {
 	// does this check introduce security problems by calling setuid and seteuid 0?
 }
 
+/*
+* Create socket, bind to port, and start listening
+* Exit()s on failure
+*/
 int buildSocket(unsigned short port) 
 {
 	struct sockaddr_in serverAddr;
@@ -109,6 +117,10 @@ int buildSocket(unsigned short port)
 	return sockfd;
 }
 
+/*
+* Read port number from string, check range, and write to port
+* Return 0 for success, 1 for out of range
+*/
 int getPort(const char *string, unsigned short *port)
 {
     long lport = strtol(string, NULL, 0);

@@ -3,8 +3,8 @@
 
 #include <time.h>
 
-#include "../../../helpers/bool/bool.h"
-#include "../../../helpers/hashtable/hashtableG.h"
+#include "../../helpers/bool/bool.h"
+#include "../../helpers/hashtable/hashtableG.h"
 
 enum Method { 
     METHODINIT,
@@ -63,12 +63,13 @@ struct requestHeaders {
     enum UIR UpgradeInsecureRequests;
     char *Referer;
     time_t IfModifiedSince;
-    HashTable *queryParameters;
+    HashTable *queryParameters; // hashtable seems like overkill, normally only a few query parameters
+    // could do as array of structs {label, value}
 };
 typedef struct requestHeaders requestHeaders;
 
 int initialiseRequestHeaders(requestHeaders *headers);
-char *parseHeaders(requestHeaders *headers, char *headersstr);
+const char *parseHeaders(requestHeaders *headers, char *headersstr);
 void freeRequestHeaders(requestHeaders *headers);
 
 #endif /* REQUESTHEADERS_H */

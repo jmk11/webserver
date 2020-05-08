@@ -2,18 +2,33 @@
 #include <string.h>
 
 #include "requestheaders.h"
-#include "requestheadersbase.h"
+//#include "requestheadersbase.h"
 #include "headerfns.h"
 #include "../helpers.h"
-#include "../../statuscodes.h"
-#include "../../../helpers/strings/strings.h"
-#include "../../../helpers/hashtable/hash.h"
+#include "../statuscodes.h"
+#include "../../helpers/strings/strings.h"
+#include "../../helpers/hashtable/hash.h"
 
 char *extractMethod(requestHeaders *headers, const char *headersstr);
 char *extractResource(requestHeaders *headers, char *headersstr, char *finish);
 char *extractQueryParameters(requestHeaders *headers, char *headersstr);
 char *manageVersion(requestHeaders *headers, const char *headersstr);
 
+static const struct requestHeaders requestHeadersBase = {
+    .method = METHODINIT,
+    .resource = NULL,
+    .Host = NULL,
+    .UserAgent = NULL,
+    .Accept = NULL,
+    .AcceptLanguage = NULL,
+    .AcceptEncoding = NULL,
+    .DNT = DNTINIT,
+    .ConnectionKeep = TRUE,
+    .UpgradeInsecureRequests = UIRINIT,
+    .Referer = NULL,
+    .IfModifiedSince = -1,
+    .queryParameters = NULL
+};
 
 int initialiseRequestHeaders(requestHeaders *headers) 
 {
@@ -64,10 +79,9 @@ char *extractResource(requestHeaders *headers, char *headersstr, char *finish)
     return cur + 1;
 }
 
-
 char *extractQueryParameters(requestHeaders *headers, char *headersstr)
 {
-    headers->queryParameters = htCreate(30, strcmp, stringhash, strdup, strdup, free, free);
+    headers->queryParameters = htCreate(30, comparestr, stringhash, strdup, strdup, free, free);
     char *cur = headersstr;
     char *label, *value;
     char finish = 0;
@@ -240,9 +254,12 @@ char *manageIfModifiedSince(requestHeaders *headers, char *headersstr)
 }
 
 /*
+* Parses headersstr and puts headers into headers struct
+* On success, returns NULL
+* On failure, returns recommended status code to return, as pointer to string in read only memory
 * Possible returned status codes: 400, 501, 505
 */
-char *parseHeaders(requestHeaders *headers, char *headersstr)
+const char *parseHeaders(requestHeaders *headers, char *headersstr)
 {
     char finish;
     if ((headersstr = extractMethod(headers, headersstr)) == NULL) { return STATUS501; }
@@ -270,51 +287,10 @@ char *parseHeaders(requestHeaders *headers, char *headersstr)
         }
     }
     return NULL;
-
-
-    // first line: replace first and second spaces with null byte
-    // following lines: replace \r with null byte
-
-    // resource:
-    /*
-    res = getFileName(requestbuf, &filename);
-	if (res != 0) {
-		fileNotFound(clientfd);
-		// end this thread
-		return 1;
-	}
-	
-	res = sanitiseRequest(filename);
-	if (res != 0) {
-		fileNotFound(clientfd);
-		//free(filename);
-		return 1;
-	}
-	printf("Filename: %s\n", filename);
-    */
 }
 
 /*
-// request is null terminated within BUFSIZ
-// edits request to null terminate filename
-// and returns pointer to where filename starts
-char *getResourceRequest(char *request) 
-{
-    // we are pointing to /
-    if (request[0] != '/') {
-        return NULL;
-    }
-    request++;
-    // could do strlenuntil if want to go over string twice to avoid too much / too little memory allocated
-
-	// we are pointing at char after /
-	// could be null
-	// turn first space into null:
-    terminateAt(request, ' ');
-    return request;
-}
-*/
-
 void freeHeadersstr(char *headersstr) {
     free(headersstr);
 }
+*/

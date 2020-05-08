@@ -1,31 +1,40 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "responseheadersbase.h"
-#include "../../../helpers/strings/strings.h"
+#include "headers.h"
+//#include "responseheadersbase.h"
+#include "../../helpers/strings/strings.h"
 //#include "headerfns.h"
-#include "../../../helpers/hashtable/hash.h"
-#include "../../statuscodes.h"
+#include "../../helpers/hashtable/hash.h"
+#include "../statuscodes.h"
 
 #define HEADERSMAX 1024
+
+static const struct responseHeaders responseHeadersBase = {
+    .Allow = {"Allow", NULL}, 
+    .ContentLength = {"Content-Length", NULL},
+    .ContentLanguage = {"Content-Language", NULL},
+    .ContentLocation = {"Content-Location", NULL},
+    .ContentMD5 = {"Content-MD5", NULL},
+    .ContentType = {"Content-Type", NULL},
+    .Date = {"Date", NULL},
+    .LastModified = {"Last-Modified", NULL},
+    .Location = {"Location", NULL},
+    .RetryAfter = {"Retry-After", NULL},
+    .Server = {"Server", NULL},
+    .SetCookie = {"Set-Cookie", NULL},
+    .Tk = {"Tk", NULL}, // ="N"
+    .Upgrade = {"Upgrade", NULL},
+    .XFrameOptions = {"X-Frame-Options", NULL},
+    .XContentTypeOptions = {"X-Content-Type-Options", NULL},
+    .ContentSecurityPolicy =  {"Content-Security-Policy", NULL},
+};
 
 int initialiseResponseHeaders(responseHeaders *headers) 
 {
     *headers = responseHeadersBase;
     return 0;
 }
-
-/*
-int addHeader(const char *header, char *headersstr, unsigned int headersstrlength)
-{
-    char *headersstrcur = headersstr;
-    int res = strlcat3(headersstr, &headersstrcur, header, headersstrlength);
-    if (res != 0) { return 1; }
-    int res = strlcat3(headersstr, &headersstrcur, "\r\n", headersstrlength);
-    if (res != 0) { return 1; }
-    return 0;
-    // could just do an snprintf on headersstrcur with remaining length
-}*/
 
 // produce headers string from responseHeaders values
 // return headers length, or -1 if fail
@@ -42,18 +51,6 @@ int produceHeaders(const char *status, char **headersstrP, const responseHeaders
     //memset(*headersstr, 0, HEADERSMAX);
     headersstr[0] = 0;
     char *headersstrcur = headersstr;
-    /*
-    int res = strlcat3(*headersstr, &headersstrcur, "HTTP/1.1 ", HEADERSMAX);
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, statusCode, HEADERSMAX);
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, " ", HEADERSMAX);
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, getStatusMessage(statusCode), HEADERSMAX); // obv change this
-    if (res != 0) { free(*headersstr); return 1; }
-    res = strlcat3(*headersstr, &headersstrcur, "\r\n", HEADERSMAX); // obv change this
-    if (res != 0) { free(*headersstr); return 1; }
-    */
     // const char* pieces[6] = {"HTTP/1.1 ", statusCode, " ", getStatusMessage(statusCode), "\r\n", NULL};
     const char* pieces[4] = {"HTTP/1.1 ", status, "\r\n", NULL};
     int res = strlcat4(headersstr, &headersstrcur, pieces, HEADERSMAX);
@@ -69,16 +66,6 @@ int produceHeaders(const char *status, char **headersstrP, const responseHeaders
             const char* pieces2[5] = {pair->label, ": ", pair->value, "\r\n", NULL};
             res = strlcat4(headersstr, &headersstrcur, pieces2, HEADERSMAX);
             if (res != 0) { free(headersstr); return -1; }
-            /*
-            res = strlcat3(*headersstr, &headersstrcur, pair->label, HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            res = strlcat3(*headersstr, &headersstrcur, ": ", HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            res = strlcat3(*headersstr, &headersstrcur, pair->value, HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            res = strlcat3(*headersstr, &headersstrcur, "\r\n", HEADERSMAX);
-            if (res != 0) { free(*headersstr); return 1; }
-            */
             // can do this with one snprintf, but I would need to calculate the total number of bytes
             // I intend to write so I can know if it is less
         }

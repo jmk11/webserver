@@ -24,8 +24,8 @@
 #include "ssl/ssl.h"
 #include "helpers/strings/strings.h"
 #include "helpers/bool/bool.h"
-#include "http/headers/response/contenttype.h"
-#include "http/headers/request/headerfns.h"
+#include "http/response/contenttype.h"
+#include "http/request/headerfns.h"
 
 #define LOGFILE "logs/serverlog.txt"
 #define SSLCONFIGLOCATION "config/certs.txt"
@@ -34,6 +34,7 @@ int main(int argc, char **argv)
 {
 	bool fileLogging = TRUE;
 
+	// initialise ssl
 	SSL_CTX *ctx = setupssl(SSLCONFIGLOCATION);
 	if (ctx == NULL) {
 		fprintf(stderr, "SSL setup failure. Exiting.\n");
@@ -42,6 +43,7 @@ int main(int argc, char **argv)
 
 	printf("uid at start: %d\n", getuid());
 	
+	// get port
 	unsigned short port;
 	if (argc == 2) {
 		int res = getPort(argv[1], &port);
@@ -67,6 +69,7 @@ int main(int argc, char **argv)
 	//char reqFileName[MAXPATH];
 	//char *filebuf;
 
+	// initialise content type and header function hash tables
 	//int res = buildContentTypeHT();
 	int res = contentType.build(); // get rid of this, main shouldn't know about this maybe
 	if (res != 0) {
@@ -79,6 +82,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	// open log file
 	int logfd = open(LOGFILE, O_WRONLY | O_CREAT | O_APPEND, 0660);
 	if (logfd < 0) {
 		perror("Cannot open log file for writing");

@@ -12,82 +12,77 @@
 #include <linux/limits.h>
 //#include <string.h>
 #include <openssl/ssl.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "connection.h"
 #include "logging.h"
 #include "wrappers/wrappers.h" // only needs this for error codes, this isn't right
 #include "files/files.h"
 #include "http/statuscodes.h"
-#include "http/response.h"
+#include "http/response/response.h"
 #include "helpers/bool/bool.h"
 #include "helpers/strings/strings.h"
-#include "http/headers/helpers.h"
+#include "http/helpers.h"
 
 
 #define FILESDIRECTORY "files/"
+#define FILECUTOFF 10000
+#define INMEM404 "<html><head><title>404</title></head><body>404</body></html>"
 
 int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source);
 int getResource(const char *filename, char newResource[MAXPATH]);
-//int setHTTPHeaders(responseHeaders headers, requestHeaders requestHeaders, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf);
 char *getExtension(const char *filepath);
 char *nullbyte(void);
 int buildFilePath(const char *filename, char *filepath, unsigned int filepathsize);
-//int fileNotFound(SSL *ssl);
 int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode);
 //int fileNotAvailable(SSL *ssl);
-int sendError(SSL *ssl, responseHeaders *headers, const char *statusCode, const requestHeaders *requestHeaders);
-int sendGoodResponse(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *filepath, time_t lastModified, int filesize);
+int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const requestHeaders *request, const char *filepath, int filesize, time_t lastModified, const char *fileextension);
+
+static const size_t inmem404length = strlen(INMEM404);
 
 int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source) {
-	char requestbuf[BUFSIZ];
-	ssize_t requestLen;
-	int retval = 0;
-
 	// copied
+	// set up SSL connection
 	SSL *ssl = SSL_new(ctx);
 	if (ssl == NULL) { 
 		return 1;
 	}
 	if (SSL_set_fd(ssl, clientfd) == 0) {
-		retval = 1;
+		return 1;
 	}
 	if (SSL_accept(ssl) <= 0) {
 		ERR_print_errors_fp(stderr);
-		retval = 1;
+		return 1;
 	}
-	// end copied
-	/*SSL_set_accept_state(ssl);
-	if (SSL_do_handshake(ssl) <= 0) {
-		ERR_print_errors_fp(stderr);
-	}*/
-	else {
-		/*requestLen = recv(clientfd, requestbuf, BUFSIZ-1, 0);
-		if (requestLen < 0) {
-			perror("Error recv");
-		}*/
-		bool continueConnection = FALSE;
-		do {
-			// set timeout on read
-			requestLen = SSL_read(ssl, requestbuf, BUFSIZ-1);
-			if (requestLen <= 0) {
-				fprintf(stderr, "SSL_read error\n");
-				continueConnection = FALSE;
-			}
-			else {
-				requestbuf[requestLen] = 0;
-				printf("%s\n", requestbuf);
-				int res = handleRequest(ssl, requestbuf, logfd, source);
-				continueConnection = (res >= 0);
-				//retval = res;
-			}
-		} while (continueConnection);
-	}
+
+	// handle requests until connection close
+	char requestbuf[BUFSIZ];
+	ssize_t requestLen;
+	bool continueConnection = FALSE;
+	do {
+		// TODO: set timeout on read
+		requestLen = SSL_read(ssl, requestbuf, BUFSIZ-1);
+		if (requestLen <= 0) {
+			fprintf(stderr, "SSL_read error\n");
+			continueConnection = FALSE;
+		}
+		else {
+			requestbuf[requestLen] = 0;
+			printf("%s\n", requestbuf);
+			int res = handleRequest(ssl, requestbuf, logfd, source);
+			continueConnection = (res >= 0);
+		}
+	} while (continueConnection);
+
+	// close SSL connection
 	SSL_shutdown(ssl); // surely this doesn't need to be called if accept() fails?
 	SSL_free(ssl);
-	return retval;
+	return 0;
 }
 
 /*
+* Handla specific request
 * Return 0 on okay and continue connection
 * Return 1 on bad and continue connection
 * Return -1 on finish connection
@@ -97,128 +92,142 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	printf("Response:\n");
 	//int badReturn = 1;
 
-	off_t filesizePure;
 	int filesize;
 	int res;
 	char resource[MAXPATH];
 	char filepath[MAXPATH];
 	//char fileextension[MAXPATH];
-	//char *headersbuf;
-	//int headersLength;
 
-	struct responseHeaders headers;
-	initialiseResponseHeaders(&headers);
+	struct responseHeaders response;
+	initialiseResponseHeaders(&response);
+	//response = responseHeadersBase;
+	struct requestHeaders request;
+	initialiseRequestHeaders(&request);
+	//request = requestHeadersBase;
 
-	struct requestHeaders requestHeaders;
-	initialiseRequestHeaders(&requestHeaders);
 	// parse headers
-	char *statusCode = parseHeaders(&requestHeaders, requestbuf);
+	const char *statusCode = parseHeaders(&request, requestbuf);
 	if (statusCode != NULL) {
-		// return with status code
-		//setGenericHeaders(&headers, &requestHeaders);
-		sendError(ssl, &headers, statusCode, &requestHeaders);
-		return requestHeaders.ConnectionKeep ? 1 : -1;
+		// illegal headers, respond with status code
+		sendResponseNoBody(ssl, &response, statusCode, &request);
+		return request.ConnectionKeep ? 1 : -1;
 	}
 	// do not change requestbuf from this point on
+	// check that requested method fits allowed. atm this is done in parseHeaders()
 	/*if (requestHeaders.method != METHOD_GET && requestHeaders.method != METHOD_HEAD) {
 		// send method not supported or method not allowed
 		setGenericHeaders(&headers, &requestheaders);
 		sendResponse(ssl, STATUS_METHODNOTALLOWED, &headers, &requestHeaders, NULL, 0);
 		return requestHeaders.ConnectionKeep ? 1 : -1;
 	}*/
-	logRequest(logfd, source, &requestHeaders);
+	logRequest(logfd, source, &request);
 	
 	// Convert requested resource to actual resource name
-	res = getResource(requestHeaders.resource, resource);
+	res = getResource(request.resource, resource);
 	if (res != 0) {
-		fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
-		return requestHeaders.ConnectionKeep ? 1 : -1;
+		fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		return request.ConnectionKeep ? 1 : -1;
 	}
 	printf("Filename: %s\n", resource);
 
 	// Convert resource name to file path
-	//char *filepath = buildFilePath(resource);
 	res = buildFilePath(resource, filepath, MAXPATH);
 	if (res != 0) {
-		fileNotFound(ssl, &headers, &requestHeaders, STATUS_URITOOLONG);
+		fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
+		return request.ConnectionKeep ? 1 : -1;
 	}
 
-	// Get file size and last modified time
+	// Resolve symbolic link if file is symbolic link
+	/*char *resolvedpath = resolveSymlink(filepath);
+	if (resolvedPath == NULL) {
+		fileNotFound(ssl, &headers, &requestheaders, STATUS_NOTFOUND);
+	}*/
+	// This doesn't need to be done for any file function, the OS handles it
+	// it needs to be done to get the extension for the mime type
+
+	// not sure if this file should need to know that last modified and file size are required headers?
+	// would be nice if could just give filename and let response send it
+	// but would have to check that file actually exists before doing that
+	// and it would be a waste to do that without getting the details
+
+	// Check file exists and is accessible, and get file size and last modified time
 	time_t lastModified;
-	filesizePure = getFileDetails(filepath, &lastModified);
+	off_t filesizePure = getFileDetails(filepath, &lastModified);
 	if (filesizePure < 0) {
 		switch (filesizePure) {
 			case STAT_NOTREADABLE:
-				fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
+				fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
 				break;
 			case STAT_NOTFOUND:
-				fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
+				fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
 				break;
 			/*default:
 				fileNotFound(ssl);
 				return badReturn;*/
 		}
-		return requestHeaders.ConnectionKeep ? 1 : -1;
+		return request.ConnectionKeep ? 1 : -1;
 	}
 	else if (filesizePure > INT_MAX) {
-		res = fileNotFound(ssl, &headers, &requestHeaders, STATUS_NOTFOUND);
-		return requestHeaders.ConnectionKeep ? res : -1;
+		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		return request.ConnectionKeep ? res : -1;
 	}
 	filesize = (int) filesizePure;
 
 	// check for 304 not modified
-	if (lastModified <= requestHeaders.IfModifiedSince) {
-		res = sendError(ssl, &headers, STATUS_NOTMODIFIED, &requestHeaders);
-		// obv this isn't an error but what I mean is that there is no body
-		return requestHeaders.ConnectionKeep ? res : -1;
+	if (lastModified <= request.IfModifiedSince) {
+		res = sendResponseNoBody(ssl, &response, STATUS_NOTMODIFIED, &request);
+		return request.ConnectionKeep ? res : -1;
 	}
 
-	// set headers based on collected information
-	/*setGenericHeaders(&headers, &requestHeaders);
-	setFileHeaders(&headers, &requestHeaders, lastModified, filesize, fileextension);*/
-	//headersLength = setHTTPHeaders(responseHeaders, requestHeaders, lastModified, filesize, fileextension, &headersbuf);
-	res = sendGoodResponse(ssl, &headers, &requestHeaders, filepath, lastModified, filesize);
-	return requestHeaders.ConnectionKeep ? res : -1;
+	// get file extension for content type
+	char *fileextension = getExtension(filepath);
+	
+	// send normal response
+	res = sendFile(ssl, STATUS_OK, &response, &request, filepath, filesize, lastModified, fileextension);
+	free(fileextension);
+	if (res != 0) {
+		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		return request.ConnectionKeep ? res : -1;
+	}
+
+	return request.ConnectionKeep ? res : -1;
 }
 
-// name
-int sendGoodResponse(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *filepath, time_t lastModified, int filesize)
-{
+// too many parameters
+/*
+* Send file
+*/
+int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const requestHeaders *request, const char *filepath, int filesize, time_t lastModified, const char *fileextension) {
 	int res;
-	// get file extension for MIME type
-	char *fileextension = getExtension(filepath);
-	char *headersbuf;
-	int headersLength = buildHeaders(headers, requestHeaders, STATUS_OK, lastModified, filesize, fileextension, &headersbuf);
-	if (headersLength < 0) {
-		return 1;
-	}
-	free(fileextension);
-
-	// Send headers and file
-	if (requestHeaders->method == METHOD_GET) {
-		res = sendResponse(ssl, headersbuf, headersLength, filepath, filesize);
+	if (filesize <= FILECUTOFF) {
+		// load file into buffer and send
+		char *filebuf;
+		res = loadRequestedFile(filepath, &filebuf, filesize);
+		if (res != 0) {
+			return 1;
+		}
+		res = sendResponse(ssl, statusCode, response, request, filebuf, filesize, lastModified, fileextension);
+		free(filebuf);
 	}
 	else {
-		res = sendResponse(ssl, headersbuf, headersLength, NULL, 0);
+		// send buffered
+		int fd = open(filepath, O_RDONLY);
+		if (fd < 0) {
+			return 1;
+		}
+		res = sendResponseBuffered(ssl, statusCode, response, request, fd, filesize, lastModified, fileextension);
+		res = close(fd);
+		if (res != 0) {
+			perror("Error close");
+		}
 	}
-	free(headersbuf);
 	return 0;
 }
 
-int sendError(SSL *ssl, responseHeaders *headers, const char *statusCode, const requestHeaders *requestHeaders)
-{
-	int retval = 1;
-	char *headersbuf;
-	int headersLength = buildHeadersNoBody(headers, requestHeaders, statusCode, &headersbuf);
-	if (headersLength > 0) {
-		sendResponse(ssl, headersbuf, headersLength, NULL, 0);
-		retval = 0;
-	}
-	free(headersbuf);
-	return retval;
-}
-
-// filename length < bufsiz
+/*
+* Sanitise resource and convert resource to actual location on computer using some hardcoded conversions
+* When called, filename length < bufsiz
+*/
 int getResource(const char *filename, char newResource[MAXPATH]) 
 {
 	for (unsigned int i = 0; filename[i+1] != 0; i++) {
@@ -237,50 +246,50 @@ int getResource(const char *filename, char newResource[MAXPATH])
 }
 
 // probably worth moving this to some other place where stat() is already called
-// returns malloced string that must be freed
+/*
+* Return file extension by extracting from filepath if filepath is a regular file,
+* or by resolving symbolic link and extracting from filename of final destination.
+* Returned string is malloced and must be freed.
+*/
 char *getExtension(const char *filepath) {
-	struct stat filestat;
-	int res = lstat(filepath, &filestat);
-	if (res != 0) {
-		perror("lstat on filename failed");
-		return nullbyte();
-	}
-	
-	char targetpath[PATH_MAX];
-	mode_t fileType = filestat.st_mode & S_IFMT;
-	if (fileType == S_IFLNK) {
-		// symbolic link
-		char *resC = realpath(filepath, targetpath);
-		if (resC == NULL) {
-			perror("realpath failed");
-			return nullbyte();
-		}
-		else {
-			filepath = targetpath;
-		}
+	// resolve symbolic link, if it is one
+	char targetpath[4096];
+	filepath = realpath(filepath, targetpath);
+	if (filepath == NULL) {
+		perror("realpath failed");
+		return nullbyte(); // maybe just return NULL and fail response
 	}
 
-	char *lastdot = NULL;
+	// find last dot in name
+	const char *lastdot = NULL;
 	for (; *filepath != 0; filepath++) {
 		if (*filepath == '.') {
 			lastdot = filepath;
 		}
 	}
+	// actually, it might be faster to go all the way to end doing one comparison - just the null byte
+	// and then move backwards checking for just the dot
+	// might be less comparisons overall, since most of the time the . should be very near the end
 	if (lastdot == NULL) { 
 		return nullbyte(); 
 	}
 	return strdup(lastdot+1);
-
-	// what if it is a symbolic link?
-	// have to get extension of linking file
 }
 
+/*
+* Malloc a single byte, set value to null byte, return pointer
+*/
 char *nullbyte() {
 	char *byte = malloc(1);
 	byte[0] = 0;
 	return byte;
 }
 
+/*
+* Build path to actual file on system
+* Basically just put FILESDIRECTORY/filename into filepath
+* filepath = FILESDIRECTORY + "/" + filename
+*/
 int buildFilePath(const char *filename, char *filepath, unsigned int filepathsize)
 {
 	char *prefix = FILESDIRECTORY;
@@ -302,13 +311,15 @@ int buildFilePath(const char *filename, char *filepath, unsigned int filepathsiz
 }
 
 /*
+* Build and send 404 response
 * atm: returns 0 on success and 1 on failure
 */
 int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode) 
 {
-	char *headersbuf;
+	// I can't call sendFile() (which was the reason I made that function), because if 404.html doesn't exist
+	// it will call this and get an infinite loop
+	// so I changed sendFile
 	int res;
-	int headersLength;
 	char filepath[MAXPATH];
 
 	res = buildFilePath("404.html", filepath, MAXPATH);
@@ -317,46 +328,54 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 	off_t filesizePure = getFileDetails(filepath, &lastModified);
 	if (filesizePure < 0 || filesizePure > INT_MAX) {
 		fprintf(stderr, "Could not access 404.html to send\n");
-		//headersLength = buildHeaders(headers, requestHeaders, STATUS_NOTFOUND, -1, -1, NULL, &headersbuf);
-		headersLength = buildHeadersNoBody(headers, requestHeaders, statusCode, &headersbuf);
-		if (headersLength < 0) { return 1; }
-		res = sendResponse(ssl, headersbuf, headersLength, NULL, 0);
+		// should have in-memory 404 for 404ing a 404. But wouldn't work with sendresponse interface which only takes files
+		// well now sendResponse is different
+		//res = sendResponseNoBody(ssl, headers, statusCode, requestHeaders);
+		res = sendResponse(ssl, statusCode, headers, requestHeaders, INMEM404, inmem404length, 0, "html");
 	}
 	else {
 		int filesize = (int) filesizePure;
-		headersLength = buildHeaders(headers, requestHeaders, statusCode, -1, filesize, "html", &headersbuf);
-		res = sendResponse(ssl, headersbuf, headersLength, filepath, filesize);
+		res = sendFile(ssl, STATUS_NOTFOUND, headers, requestHeaders, filepath, filesize, 0, "html");
+		if (res < 0) {
+			res = sendResponse(ssl, statusCode, headers, requestHeaders, INMEM404, inmem404length, 0, "html");
+		}
 	}
 	return res;
 }
-
-
-/*
-int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders) 
-{
-	int res;
-	setGenericHeaders(headers, requestHeaders);
-	char filepath[MAXPATH];
-	res = buildFilePath("404.html", filepath, MAXPATH);
-	if (res != 0) { return 1; }
-	time_t modifiedSince;
-	off_t filesizePure = getFileDetails(filepath, &modifiedSince);
-	if (filesizePure < 0 || filesizePure > INT_MAX) {
-		fprintf(stderr, "Could not access 404.html to send\n");
-		res = sendResponse(ssl, STATUS_NOTFOUND, headers, NULL, 0);
-	}
-	else {
-		int filesize = (int) filesizePure;
-		setFileHeaders(headers, requestHeaders, 0, filesize, "html");
-		res = sendResponse(ssl, STATUS_NOTFOUND, headers, filepath, filesize);
-	}
-	return res;
-}
-*/
 
 /*
 int fileNotAvailable(SSL *ssl) 
 {
 	return 0;
+}
+*/
+
+/*
+ * If filepath is a symbolic link, puts final destination in targetpath and returns targetpath
+ * If not, returns filepath
+ * On failure, returns NULL
+*/
+/*
+char *resolveSymlink(const char *filepath, char targetpath[PATH_MAX]) {
+	struct stat filestat;
+	int res = lstat(filepath, &filestat);
+	if (res != 0) {
+		perror("lstat on filename failed");
+		return NULL;
+	}
+	
+	mode_t fileType = filestat.st_mode & S_IFMT;
+	if (fileType == S_IFLNK) {
+		// symbolic link
+		char *reschar = realpath(filepath, targetpath);
+		if (reschar == NULL) {
+			perror("realpath failed");
+			return NULL;
+		}
+		else {
+			filepath = targetpath;
+		}
+	}
+	return filepath;
 }
 */

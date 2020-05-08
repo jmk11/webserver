@@ -12,17 +12,17 @@
 bool isReadable(const char *filepath);
 
 /*
-* Returns file size
-* or negative constants to communicate problem
+* Returns file size, and puts last modified time in *lastModified
+* On failure, returns one of negative constants specifying problem
 */
-off_t getFileDetails(const char *filepath, time_t *modifiedSince) 
+off_t getFileDetails(const char *filepath, time_t *lastModified) 
 {
 	struct stat filestat;
 	int res = stat(filepath, &filestat);
 	if (res != 0) { /* perror */ return STAT_NOTFOUND; }
 	if (filestat.st_size < 0) { return STAT_NOTFOUND; } // I'm not sure if this is possible..
 	//if (filestat.st_size > INT_MAX) { return STAT_TOOLARGE; }
-	*modifiedSince = filestat.st_mtime;
+	*lastModified = filestat.st_mtime;
 	if (! isReadable(filepath)) {
 		return STAT_NOTREADABLE;
 	}
@@ -53,7 +53,10 @@ bool isReadable(const char *filepath)
 }
 
 
-// sets filebuf pointer to malloced memory that must be freed
+/*
+* Loads file at filepath into *filebuf
+* *filebuf is set to malloced memory that must be freed
+*/
 int loadRequestedFile(const char *filepath, char **filebuf, size_t filesize) 
 {	
 	// if file permissions suit

@@ -1,7 +1,11 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "hash.h"
 
+/*
+* A hash function for hashing string keys
+*/
 unsigned int stringhash(const void *voidstr, unsigned int hashsize)
 {
     const char *str = (const char *) voidstr;
@@ -11,4 +15,28 @@ unsigned int stringhash(const void *voidstr, unsigned int hashsize)
         sum += str[i];
     }
     return sum % hashsize;
+}
+
+/*
+* Function for comparing string keys or values, for use in hash table
+*/
+bool comparestr(const void *a, const void *b)
+{
+    return strcmp(a, b) == 0;
+}
+
+/*
+* Function for copying string keys or values, for use in hash table
+*/
+void *copystr(const void *str)
+{
+    return strdup(str);
+}
+
+/*
+* Function for freeing string keys or values, for use in hash table
+*/
+void freestr(void *str)
+{
+    free(str);
 }

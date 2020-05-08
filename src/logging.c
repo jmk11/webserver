@@ -4,20 +4,20 @@
 
 #include "logging.h"
 #include "common.h"
-#include "http/headers/helpers.h"
-#include "http/headers/request/requestheaders.h"
+#include "http/helpers.h"
+#include "http/request/requestheaders.h"
 
-
+/*
+* Log time, source IP and port, resource request, user agent to given file descriptor
+*/
 int logRequest(int logfd, struct sockaddr_in addrStruct, const requestHeaders *requestHeaders)
 {
-	// Time, sourceIP, resource request, user agent
-
 	unsigned int bufsize = 300;
 	char buf[bufsize];
 	char *cur;
 	unsigned int remsize;
 	
-	// time
+	// write time to buf
 	int bytesWritten = getHTTPDate(buf, bufsize);
 	if (bytesWritten <= 0) {
 		(void) NULL;
@@ -26,13 +26,14 @@ int logRequest(int logfd, struct sockaddr_in addrStruct, const requestHeaders *r
 	cur = buf + bytesWritten;
 	remsize = bufsize - bytesWritten;
 	
-	// from a 1521 sample code
-	// source IP, port
+	//  get IP as string
 	char addrstr[16];
 	stringIP(addrstr, addrStruct.sin_addr.s_addr);
+	// write IP+port, resource, user agent to buf
 	bytesWritten = snprintf(cur, remsize, ": %s:%hu\n\t%s\n\t%s\n", addrstr, addrStruct.sin_port, requestHeaders->resource, requestHeaders->UserAgent);
-	// check failure
+	// todo: check failure
 	
+	// write buf to file descriptor
 	bytesWritten = write(logfd, buf, strlen(buf));
 	if (bytesWritten != strlen(buf)) {
 		// if strlen(buf) was the unsigned equivalent of -1, and it got cast to signed for this comparison,
@@ -56,6 +57,4 @@ int logRequest(int logfd, struct sockaddr_in addrStruct, const requestHeaders *r
 	
 	// resource request
 	// bytesWritten = snprintf(cur, remsize, "\t %s", requestHeaders.resource);
-	
-	// user agent
 }

@@ -205,6 +205,7 @@ int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned i
 }
 
 /*
+* Null terminates string at first occurence of character end
 * Returns pointer to new null byte, or NULL if didn't find end before s terminated
 */
 char *terminateAt(char *s, char end) 
@@ -217,8 +218,9 @@ char *terminateAt(char *s, char end)
 }
 
 /*
-* Terminate string at first of given list (string) of options
-* Returns pointer to new null byte, or NULL if didn't find end before s terminated
+* Null terminate string at first of given list (string) of options
+* Returns pointer to new null byte, or NULL if didn't find any of ends before s terminated
+* If one of ends was found, sets *found to the value found
 */
 char *terminateAtOpts(char *s, const char *ends, char *found)
 {
@@ -235,17 +237,24 @@ char *terminateAtOpts(char *s, const char *ends, char *found)
     return NULL;
 }
 
-// return pointer to first byte that is not space
+/* 
+* Returns pointer to first byte in string that is not space or tab
+* If no whitespace is found before null termination, returns pointer to null byte
+*/
 char *skipwsp(const char *s)
 {
-    if (s == NULL) { return NULL; }
+    // if (s == NULL) { return NULL; }
     for (; (*s == ' ' || *s == '\t') && *s != 0; s++) {}
     return s;
 }
 
+/*
+* Strips whitespace from right of string, by replacing beginning of end-of-string whitespace with null byte
+* Returns s
+*/
 char *stripwsp(char *s)
 {
-    if (s == NULL) { return NULL; }
+    // if (s == NULL) { return NULL; }
     char *end = s + strlen(s) - 1;
     for (; (*end == ' ' || *end == '\t') && *end != 0; end--) {
         //*end = 0;

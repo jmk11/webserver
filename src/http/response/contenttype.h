@@ -1,7 +1,7 @@
 #ifndef CONTENTTYPE_H
 #define CONTENTTYPE_H
 
-#include "../../../helpers/bool/bool.h"
+#include "../../helpers/bool/bool.h"
 
 struct ContentType {
     int (*build)(void);

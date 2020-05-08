@@ -3,7 +3,7 @@
 
 #include <netinet/in.h>
 
-#include "http/headers/request/requestheaders.h"
+#include "http/request/requestheaders.h"
 
 int logRequest(int logfd, struct sockaddr_in addrStruct, const requestHeaders *requestHeaders);
 

@@ -14,7 +14,7 @@ common_lib_static = static_library('common',
 
 webserver_sources = ['main.c', 'connection.c', 'connection.h', 'logging.c', 'logging.h']
 executable('webserver', webserver_sources,
-            link_with: [hashtable_lib_static, common_lib_static, ssl_lib_static, strings_lib_static, http_lib_static, wrappers_lib_static],
+            link_with: [hashtable_lib_static, common_lib_static, ssl_lib_static, strings_lib_static, http_lib_static, wrappers_lib_static, files_lib_static],
             dependencies: [openssl],
             install: true)
 

@@ -2,8 +2,8 @@
 
 #include "contenttype.h"
 #include "headers.h"
-#include "../../../helpers/hashtable/hashtableG.h"
-#include "../../../helpers/hashtable/hash.h"
+#include "../../helpers/hashtable/hashtableG.h"
+#include "../../helpers/hashtable/hash.h"
 
 int buildContentTypeHT(void);
 char *setContentType(bool sameDomainReferer, const char *fileExtension);
@@ -11,25 +11,6 @@ void destroyContentTypeHT(void);
 ContentType contentType = {.build = buildContentTypeHT, .setContentType = setContentType, .destroy = destroyContentTypeHT};
 
 static HashTable *ht;
-
-bool comparestr(const void *a, const void *b);
-void *copystr(const void *str);
-void freestr(void *str);
-
-bool comparestr(const void *a, const void *b)
-{
-    return strcmp(a, b) == 0;
-}
-
-void *copystr(const void *str)
-{
-    return strdup(str);
-}
-
-void freestr(void *str)
-{
-    free(str);
-}
 
 int buildContentTypeHT()
 {
@@ -75,6 +56,9 @@ int buildContentTypeHT()
     if (res != 0) { return 1; }
 
     res = htAdd(ht, "mp4", "video/mp4");
+    if (res != 0) { return 1; }
+    
+    res = htAdd(ht, "mp3", "audio/mpeg");
     if (res != 0) { return 1; }
 
     res = htAdd(ht, "rar", "application/x-rar-compressed");

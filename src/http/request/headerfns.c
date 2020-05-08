@@ -2,9 +2,9 @@
 #include <stdlib.h>
 
 #include "headerfns.h"
-#include "../../../helpers/hashtable/hashtableG.h"
-#include "../../../helpers/hashtable/hash.h"
-#include "../../../helpers/strings/strings.h"
+#include "../../helpers/hashtable/hashtableG.h"
+#include "../../helpers/hashtable/hash.h"
+#include "../../helpers/strings/strings.h"
 //#include "headerpriv.h"
 
 static HashTable *ht;
@@ -32,6 +32,10 @@ bool compareKey(const void *a, const void *b)
     return strcmpequntil((const char **) &a, b, ':') == 1;
 }
 
+/*
+* Hash function for string to hash, consdiering ':' or null byte to indicate end of string
+* !! is this right or should function be changed
+*/
 unsigned int hash(const void *voidstr, unsigned int hashsize)
 {
     const char *str = (const char *) voidstr;
@@ -86,6 +90,10 @@ const struct requestHeaders requestHeadersBase = {
 };
 */
 
+/*
+* Initialise header functions hash table
+* This hash table is used for mapping request header labels to function pointers that parse the value
+*/
 int buildHeaderFnsHT()
 {
     ht = htCreate(30, compareKey, hash, copyKey, copyValue, freeKey, freeValue);
