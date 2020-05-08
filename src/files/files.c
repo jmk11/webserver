@@ -13,13 +13,16 @@ bool isReadable(const char *filepath);
 
 /*
 * Returns file size, and puts last modified time in *lastModified
-* On failure, returns one of negative constants specifying problem
+* On failure or special circumstance, returns one of negative constants specifying situation
 */
 off_t getFileDetails(const char *filepath, time_t *lastModified) 
 {
 	struct stat filestat;
 	int res = stat(filepath, &filestat);
 	if (res != 0) { /* perror */ return STAT_NOTFOUND; }
+	//mode_t fileType = filestat.st_mode & S_IFMT;
+	//if (fileType == S_IFDIR) { return STAT_ISDIR; }
+	if ((filestat.st_mode & S_IFDIR) != 0) { return STAT_ISDIR; }
 	if (filestat.st_size < 0) { return STAT_NOTFOUND; } // I'm not sure if this is possible..
 	//if (filestat.st_size > INT_MAX) { return STAT_TOOLARGE; }
 	*lastModified = filestat.st_mtime;

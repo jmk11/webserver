@@ -7,10 +7,37 @@
 #include "strings.h"
 //#include "bool/bool.h"
 
+/*
+* Concatenate src to dst, so that length of string at dst (including null byte) does not exceed maxSize
+* Always null terminates dst
+* If src did not finish before dst ran out of space, return 1
+* !!! not tested
+*/
+int strlcat1(char *dst, const char *src, unsigned int maxSize)
+{
+    char *dstEnd = dst + maxSize;
+    // find end of dst
+    for (; dst < dstEnd-1 && *dst != 0; dst++) {}
+    // copy over
+    while (dst < dstEnd-1 && *src != 0) {
+        *(dst++) = *(src++);
+    }
+    *dst = 0;
+    if (*src != 0) {
+        return 1;
+    }
+    return 0;
+}
 
-// 0: success
-// 1: not enough space for src
-// !!!! not tested
+
+/*
+* Concatenate src to dst, starting at *dstCur
+* Will concatenate max maxSize bytes from dstStart
+* Sets *dstCur to current destination
+* Returns 0 on success, 1 if src did not null terminate before space ran out
+* Always null terminates src
+* !!!! not tested
+*/
 int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSize)
 {
     maxSize = maxSize - (*dstCur - dstStart);

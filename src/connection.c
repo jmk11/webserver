@@ -150,11 +150,24 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	// but would have to check that file actually exists before doing that
 	// and it would be a waste to do that without getting the details
 
-	// Check file exists and is accessible, and get file size and last modified time
+	// if filename is a directory, resource = filename/.directory.html
+
+	// Check file exists and is accessible, check file type, and get file size and last modified time
 	time_t lastModified;
-	off_t filesizePure = getFileDetails(filepath, &lastModified);
+	off_t filesizePure;
+	getDetails: filesizePure = getFileDetails(filepath, &lastModified);
 	if (filesizePure < 0) {
 		switch (filesizePure) {
+			case STAT_ISDIR:
+				res = strlcat1(filepath, "/.directory.html", MAXPATH);
+				if (res != 0) {
+					fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+					break;
+				}
+				goto getDetails;
+				// obviously I will remove this goto
+				// or maybe not, I like it now.....
+				//break;
 			case STAT_NOTREADABLE:
 				fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
 				break;

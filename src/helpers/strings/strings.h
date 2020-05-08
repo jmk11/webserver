@@ -11,5 +11,6 @@ char *terminateAt(char *s, char end);
 char *terminateAtOpts(char *s, const char *ends, char *found);
 char *skipwsp(const char *s);
 char *stripwsp(char *s);
+int strlcat1(char *dst, const char *src, unsigned int maxSize);
 
 #endif /* STRINGS_H */
