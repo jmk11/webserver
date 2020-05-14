@@ -8,6 +8,9 @@ int addMyHeaders(responseHeaders *headers)
 	//securityheaders.com:
 	headers->XContentTypeOptions.value = "nosniff";
 	headers->XFrameOptions.value = "SAMEORIGIN";
-	headers->ContentSecurityPolicy.value = "default-src 'self'";
+	headers->ContentSecurityPolicy.value = "default-src 'self'; style-src 'unsafe-inline';";
+	// 'unsafe-inline' is to allow inline css within html pages
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src
+	// Can use an inline style nonce or hash to only allow specific ones
 	return 0;
 }

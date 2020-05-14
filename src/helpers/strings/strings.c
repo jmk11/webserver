@@ -289,3 +289,19 @@ char *stripwsp(char *s)
     *(end+1) = 0;
     return s;
 }
+
+/*
+* Return 0 if string fit, 1 if not
+* Always null terminates dst within length bytes
+*/
+int strlcpy(char *dst, const char *src, size_t length) {
+    char *dstend = dst+length;
+    while (dst < dstend-1 && *src != 0) {
+        *(dst++) = *(src++);
+    }
+    *dst = 0;
+    if (*src != 0) {
+        return 1;
+    }
+    return 0;
+}

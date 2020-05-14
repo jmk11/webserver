@@ -10,7 +10,7 @@
 #define SIGINTEXIT 20 // remove?
 
 #define MAXLENGTH 150 // name !!
-#define MAXPATH 150
+#define MAXPATH 250
 
 //#define MAXNUMARGS 2
 

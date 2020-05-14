@@ -12,5 +12,6 @@ char *terminateAtOpts(char *s, const char *ends, char *found);
 char *skipwsp(const char *s);
 char *stripwsp(char *s);
 int strlcat1(char *dst, const char *src, unsigned int maxSize);
+int strlcpy(char *dst, const char *src, size_t length);
 
 #endif /* STRINGS_H */

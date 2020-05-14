@@ -63,6 +63,11 @@ char *extractMethod(requestHeaders *headers, const char *headersstr)
 // request is null terminated within BUFSIZ
 // edits request to null terminate filename
 // and sets pointer to where filename starts
+// ideally the %20 etc. conversion would be done here
+// but atm parseHeaders does not return any malloced memory
+// it would be nice to keep it that way
+// so I don't have to track what strings are malloced and which aren't
+// but it really doesn't make sense for this conversion to be anywhere else
 char *extractResource(requestHeaders *headers, char *headersstr, char *finish)
 {
     if (headersstr[0] != '/') {

@@ -31,7 +31,7 @@
 #define INMEM404 "<html><head><title>404</title></head><body>404</body></html>"
 
 int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source);
-int getResource(const char *filename, char newResource[MAXPATH]);
+char *getResource(const char *filename, char newResource[MAXPATH]);
 char *getExtension(const char *filepath);
 char *nullbyte(void);
 int buildFilePath(const char *filename, char *filepath, unsigned int filepathsize);
@@ -39,7 +39,8 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 //int fileNotAvailable(SSL *ssl);
 int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const requestHeaders *request, const char *filepath, int filesize, time_t lastModified, const char *fileextension);
 
-static const size_t inmem404length = strlen(INMEM404);
+//static const size_t inmem404length = strlen(INMEM404);
+static const size_t inmem404length = sizeof(INMEM404);
 
 int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source) {
 	// copied
@@ -94,8 +95,9 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 
 	int filesize;
 	int res;
-	char resource[MAXPATH];
+	char resourceArr[MAXPATH];
 	char filepath[MAXPATH];
+	char *resource;
 	//char fileextension[MAXPATH];
 
 	struct responseHeaders response;
@@ -123,11 +125,21 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	logRequest(logfd, source, &request);
 	
 	// Convert requested resource to actual resource name
-	res = getResource(request.resource, resource);
-	if (res != 0) {
+
+	resource = getResource(request.resource, resourceArr);
+	if (resource == NULL) {
 		fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
 		return request.ConnectionKeep ? 1 : -1;
 	}
+	/*if (res != 0) {
+		if (res == 1) {
+			fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
+		}
+		else if (res == 2) {
+			fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		}
+		return request.ConnectionKeep ? 1 : -1;
+	}*/
 	printf("Filename: %s\n", resource);
 
 	// Convert resource name to file path
@@ -207,6 +219,10 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 }
 
 // too many parameters
+// something isn't right, html pages don't display properly
+// I think the css is being ignored, possibly because of my restrictive security headers
+// limiting browser to only treat it as html and not html+css
+
 /*
 * Send file
 */
@@ -240,23 +256,72 @@ int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const 
 /*
 * Sanitise resource and convert resource to actual location on computer using some hardcoded conversions
 * When called, filename length < bufsiz
+* Returns filename on success and filename can be used as the resource
+* Returns newResource if newResource should be used as the resource
+* Returns NULL if resource requested was rejected during sanitisation
+* // could I avoid copying except when necessary?
+* // I could return a value to indicate that the resource is unchanged/changed
+* // and only write to newResource if changed
 */
-int getResource(const char *filename, char newResource[MAXPATH]) 
+char *getResource(const char *filename, char newResource[MAXPATH]) 
 {
 	for (unsigned int i = 0; filename[i+1] != 0; i++) {
 		if (filename[i] == '.' && filename[i+1] == '.') {
-			return 1;
+			return NULL;
 		}
 	}
 	// I don't like this way
 	if (filename[0] == 0) {
 		strncpy(newResource, "index.html", MAXPATH); // check this isn't 1 byte overflow
+		return newResource;
 	}
-	else {
-		strncpy(newResource, filename, MAXPATH);
-	}
-	return 0;
+	// convert % encoding: // TODO: MOVE THIS TO REQUESTHEADERS.C
+	// https://github.com/dnmfarrell/URI-Encode-C/blob/master/src/uri_encode.c
+	//convertPCencoding(filename, newResource);
+	
+	return filename;
 }
+
+// this is way too complicated and lengthy
+/*
+char *convertPCencoding(const char *filename, char newResource[MAXPATH]) {
+	unsigned int i = 0;
+	//char *filenamecur = filename;
+	//bool pc = FALSE;
+	// find if there is a percent
+	while (filename[i] != 0 && filename[i] != '%') {
+		//filenamecur++;
+		i++;
+	}
+	if (filename[i] != '%') {
+		// no percent, keep normal filename and avoid copying
+		return filename;
+	}
+
+	// there is a percent
+	// copy everthing up to here over to newResource
+	if (i >= MAXPATH) {
+		// no: the limit could be lower because we are going to lose at least one character from the percent conversion
+		return NULL;
+	}
+	for (unsigned int j = 0; j < i; j++) {
+		newResource[j] = filename[j];
+	}
+
+	char hexnum[3];
+	hexnum[0] = filename[i++];
+	hexnum[1] = filename[i++];
+	hexnum[2] = 0;
+	long long num = strtoll(hexnum, NULL, 16);
+	// awful
+
+
+	// now convert all percents from here to end
+	for (unsigned int j = i; filename[j] != 0; j++) {
+
+	}
+}
+*/
 
 // probably worth moving this to some other place where stat() is already called
 /*
@@ -344,13 +409,14 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 		// should have in-memory 404 for 404ing a 404. But wouldn't work with sendresponse interface which only takes files
 		// well now sendResponse is different
 		//res = sendResponseNoBody(ssl, headers, statusCode, requestHeaders);
-		res = sendResponse(ssl, statusCode, headers, requestHeaders, INMEM404, inmem404length, 0, "html");
+		res = sendResponse(ssl, statusCode, headers, requestHeaders, INMEM404, /*strlen(INMEM404)*/inmem404length, 0, "html");
+		// stlren should be optimised out right?
 	}
 	else {
 		int filesize = (int) filesizePure;
 		res = sendFile(ssl, STATUS_NOTFOUND, headers, requestHeaders, filepath, filesize, 0, "html");
 		if (res < 0) {
-			res = sendResponse(ssl, statusCode, headers, requestHeaders, INMEM404, inmem404length, 0, "html");
+			res = sendResponse(ssl, statusCode, headers, requestHeaders, INMEM404, /*strlen(INMEM404)*/inmem404length, 0, "html");
 		}
 	}
 	return res;

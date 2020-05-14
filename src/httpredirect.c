@@ -24,6 +24,7 @@ int getResourceRequest(char *request, char **filename);
 int main(int argc, char **argv)
 {
 	printf("uid at start: %d\n", getuid());
+	printf("euid at start: %d\n", geteuid());
 	
 	unsigned short port;
 	if (argc == 2) {

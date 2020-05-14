@@ -42,6 +42,7 @@ int main(int argc, char **argv)
 	}
 
 	printf("uid at start: %d\n", getuid());
+	printf("euid at start: %d\n", geteuid());
 	
 	// get port
 	unsigned short port;
