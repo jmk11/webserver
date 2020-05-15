@@ -1,102 +1,33 @@
+/*
+* Hashtable mapping request header label to a function that processes the value
+*/
+
 #include <string.h>
 #include <stdlib.h>
 
 #include "headerfns.h"
+#include "requestheaders.h"
 #include "../../helpers/hashtable/hashtableG.h"
-#include "../../helpers/hashtable/hash.h"
+#include "../../helpers/hashtable/stringhash.h"
 #include "../../helpers/strings/strings.h"
-//#include "headerpriv.h"
 
-static HashTable *ht;
-// key is string
-// value is function pointer
-// void 
-//typedef void (*valueFn) (const char *);
+static HashTable *ht; // is this so bad
+// key is string, value is function pointer
 
-// compareKey
-// hash
-// copykey
-// copyvalue
-// freekey
-// freevalue
-
+unsigned int hash(const void *voidstr, unsigned int hashsize);
 bool compareKey(const void *a, const void *b);
-void *copyKey(const void *key);
 void *copyValue(const void *value);
-void freeKey(void *key);
 void freeValue(void *value);
 int buildHeaderFnsHT(void);
 
-bool compareKey(const void *a, const void *b)
-{
-    return strcmpequntil((const char **) &a, b, ':') == 1;
-}
-
-/*
-* Hash function for string to hash, consdiering ':' or null byte to indicate end of string
-* !! is this right or should function be changed
-*/
-unsigned int hash(const void *voidstr, unsigned int hashsize)
-{
-    const char *str = (const char *) voidstr;
-    if (str == NULL) { return 0; } // would be better to have some kind of error
-    unsigned int sum = 0;
-    for (unsigned int i = 0; str[i] != 0 && str[i] != ':'; i++) {
-        sum += str[i];
-    }
-    return sum % hashsize;
-}
-
-void *copyKey(const void *key)
-{
-    return strdup(key);
-}
-
-void *copyValue(const void *value)
-{
-    return value;
-    // not sure what to do about const discarding
-    // I don't think I need to copy a function pointer?
-    // Couldn't change within life of program?
-    //const void *copy = malloc(sizeof(void *));
-    //memcpy()
-    // I'm not sure that I meet the requirements of restrict...
-
-}
-
-void freeKey(void *key)
-{
-    free(key);
-}
-
-void freeValue(void *value)
-{
-    return;
-}
-
-/*
-const struct requestHeaders requestHeadersBase = {
-    .method = METHODINIT,
-    .resource = NULL,
-    .Host = {"Host", NULL},
-    .UserAgent = {"User-Agent", NULL},
-    .Accept = {"Accept", NULL},
-    .AcceptLanguage = {"Accept-Language", NULL},
-    .AcceptEncoding = {"Accept-Encoding", NULL},
-    .DNT = {"DNT", TRUE},
-    .ConnectionKeep = {"Connection", TRUE},
-    .UpgradeInsecureRequests = {"Upgrade-Insecure-Requests", FALSE},
-    .Referer = {"Referer", NULL}
-};
-*/
 
 /*
 * Initialise header functions hash table
-* This hash table is used for mapping request header labels to function pointers that parse the value
+* Call once at beginning of program
 */
 int buildHeaderFnsHT()
 {
-    ht = htCreate(30, compareKey, hash, copyKey, copyValue, freeKey, freeValue);
+    ht = htCreate(30, compareKey, hash, copystr, copyValue, freestr, freeValue);
     int res = htAdd(ht, "Host:", (const void*) manageHost);
     if (res != 0) { return 1; }
     res = htAdd(ht, "User-Agent:", (const void*) manageUA);
@@ -121,13 +52,56 @@ int buildHeaderFnsHT()
     return 0;
 }
 
+/*
+* Destroy header functions hash table
+* Call once at end of program
+*/
 void destroyHeaderFnsHT()
 {
     htDestroy(ht);
 }
 
+/*
+* Look up hash table and return function pointer
+*/
 char* (*getHeaderFn(const char *str))(requestHeaders*, char*) 
 {
     return (char *(*)(requestHeaders*, char *)) htLookup(ht, str);
 }
 
+// this part seems like a hack
+bool compareKey(const void *a, const void *b)
+{
+    return strcmpequntil((const char **) &a, b, ':') == 1;
+}
+
+/*
+* Hash function for string to hash, consdiering ':' or null byte to indicate end of string
+* !! is this right or should function be changed
+*/
+unsigned int hash(const void *voidstr, unsigned int hashsize)
+{
+    const char *str = (const char *) voidstr;
+    if (str == NULL) { return 0; } // would be better to have some kind of error
+    unsigned int sum = 0;
+    for (unsigned int i = 0; str[i] != 0 && str[i] != ':'; i++) {
+        sum += str[i];
+    }
+    return sum % hashsize;
+}
+
+void *copyValue(const void *value)
+{
+    return value;
+    // not sure what to do about const discarding
+    // I don't think I need to copy a function pointer?
+    // Couldn't change within life of program?
+    //const void *copy = malloc(sizeof(void *));
+    //memcpy()
+    // I'm not sure that I meet the requirements of restrict...
+}
+
+void freeValue(void *value)
+{
+    return;
+}

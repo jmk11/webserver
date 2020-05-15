@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "hash.h"
+#include "stringhash.h"
 
 /*
 * A hash function for hashing string keys

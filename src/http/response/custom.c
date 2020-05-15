@@ -1,9 +1,12 @@
 #include "custom.h"
 
+/*
+* Adds language and security headers
+* Should be configurable
+*/
 int addMyHeaders(responseHeaders *headers)
 {
     headers->ContentLanguage.value = "en";
-	//headers->Tk.value = "N";
 
 	//securityheaders.com:
 	headers->XContentTypeOptions.value = "nosniff";

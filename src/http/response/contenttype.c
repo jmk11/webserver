@@ -1,17 +1,22 @@
+/*
+* Hash table mapping file extension to MIME type
+*/
+
 #include <string.h>
 
 #include "contenttype.h"
 #include "headers.h"
 #include "../../helpers/hashtable/hashtableG.h"
-#include "../../helpers/hashtable/hash.h"
+#include "../../helpers/hashtable/stringhash.h"
 
-int buildContentTypeHT(void);
-char *setContentType(bool sameDomainReferer, const char *fileExtension);
-void destroyContentTypeHT(void);
-ContentType contentType = {.build = buildContentTypeHT, .setContentType = setContentType, .destroy = destroyContentTypeHT};
+//ContentType contentType = {.build = buildContentTypeHT, .setContentType = setContentType, .destroy = destroyContentTypeHT};
 
 static HashTable *ht;
+// string -> string
 
+/*
+* Build hash table. Call once at beginning of program.
+*/
 int buildContentTypeHT()
 {
     ht = htCreate(150, comparestr, stringhash, copystr, copystr, freestr, freestr);
@@ -73,31 +78,33 @@ int buildContentTypeHT()
     return 0;
 }
 
+/*
+* Return content type pointer from hash table
+*/
 char *setContentType(bool sameDomainReferer, const char *fileExtension)
 {
-    char *contentTypestr;
-    /*
-    if (contentType == NULL) {
-        return 1;
-    }*/
+    char *contentTypestr = htLookup(ht, fileExtension);
+    if (contentTypestr == NULL) {
+        contentTypestr = htLookup(ht, "default");
+    }
+    return contentTypestr;
+
     /*
     if (strcmp(fileExtension, "js") == 0) {
         if(sameDomainReferer) { *contentType = "text/javascript"; }
         else { *contentType = "text/plain"; } // I'm assuming these strings go in the data region...
     }*/
-    if (strcmp(fileExtension, "js") == 0) {
+    /*if (strcmp(fileExtension, "js") == 0) {
         if (sameDomainReferer) { contentTypestr = htLookup(ht, "js"); }
         else { contentTypestr = htLookup(ht, "txt"); }
     }
-    else {
-        contentTypestr = htLookup(ht, fileExtension);
-        if (contentTypestr == NULL) {
-            contentTypestr = htLookup(ht, "default");
-        }
-    }
-    return contentTypestr;
+    else {*/
+    /*}*/
 }
 
+/*
+* Destroy hash table. Call once at end of program.
+*/
 void destroyContentTypeHT() {
     htDestroy(ht);
 }

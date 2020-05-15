@@ -104,15 +104,15 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	initialiseResponseHeaders(&response);
 	//response = responseHeadersBase;
 	struct requestHeaders request;
-	initialiseRequestHeaders(&request);
-	//request = requestHeadersBase;
 
 	// parse headers
 	const char *statusCode = parseHeaders(&request, requestbuf);
 	if (statusCode != NULL) {
 		// illegal headers, respond with status code
 		sendResponseNoBody(ssl, &response, statusCode, &request);
-		return request.ConnectionKeep ? 1 : -1;
+		res = 1;
+		goto RETURN;
+		//return request.ConnectionKeep ? 1 : -1;
 	}
 	// do not change requestbuf from this point on
 	// check that requested method fits allowed. atm this is done in parseHeaders()
@@ -129,7 +129,9 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	resource = getResource(request.resource, resourceArr);
 	if (resource == NULL) {
 		fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-		return request.ConnectionKeep ? 1 : -1;
+		res = 1;
+		goto RETURN;
+		//return request.ConnectionKeep ? 1 : -1;
 	}
 	/*if (res != 0) {
 		if (res == 1) {
@@ -146,7 +148,9 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	res = buildFilePath(resource, filepath, MAXPATH);
 	if (res != 0) {
 		fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
-		return request.ConnectionKeep ? 1 : -1;
+		res = 1;
+		goto RETURN;
+		//return request.ConnectionKeep ? 1 : -1;
 	}
 
 	// Resolve symbolic link if file is symbolic link
@@ -190,18 +194,22 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 				fileNotFound(ssl);
 				return badReturn;*/
 		}
-		return request.ConnectionKeep ? 1 : -1;
+		res = 1;
+		goto RETURN;
+		//return request.ConnectionKeep ? 1 : -1;
 	}
 	else if (filesizePure > INT_MAX) {
 		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-		return request.ConnectionKeep ? res : -1;
+		goto RETURN;
+		//return request.ConnectionKeep ? res : -1;
 	}
 	filesize = (int) filesizePure;
 
 	// check for 304 not modified
 	if (lastModified <= request.IfModifiedSince) {
 		res = sendResponseNoBody(ssl, &response, STATUS_NOTMODIFIED, &request);
-		return request.ConnectionKeep ? res : -1;
+		goto RETURN;
+		//return request.ConnectionKeep ? res : -1;
 	}
 
 	// get file extension for content type
@@ -212,9 +220,12 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	free(fileextension);
 	if (res != 0) {
 		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-		return request.ConnectionKeep ? res : -1;
+		goto RETURN; // hehe
+		//return request.ConnectionKeep ? res : -1;
 	}
 
+	RETURN:
+	freeRequestHeaders(&request);
 	return request.ConnectionKeep ? res : -1;
 }
 

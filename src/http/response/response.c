@@ -1,11 +1,9 @@
 #include <unistd.h>
 
 #include "response.h"
-//#include "../../helpers/hashtable/hashtableG.h"
 #include "contenttype.h"
 #include "custom.h"
 #include "../helpers.h"
-//#include "../../files/files.h"
 
 #define MAXSIZE 150
 // same as MAXPATH so should move to one imported definition
@@ -45,13 +43,19 @@ in handlerequest:
 
 */
 
-// add headers and send response with body
-// if lastModified is 0, won't add lastModified
-// what if give the filestat struct
-// Public
+/* 
+ * Add standard headers and send headers and body
+ * Return 0 on success, other on failure
+ * bodylength: a meaningful value is necessary
+ * lastModified: if 0, won't add lastModified header
+ * File extension: used to set mime type. If it is NULL, mimetype will be text/plain // TODO: verify that
+ * what if give the filestat struct
+ */
 int sendResponse(SSL *ssl, const char *statusCode, responseHeaders *headers, const requestHeaders *requestHeaders, const char *body, int bodylength, time_t lastModified, const char *fileextension)
 {
 	int res;
+
+	// build headers
 	char *headersbuf;
 	int headersLength = buildHeaders(headers, requestHeaders, statusCode, lastModified, bodylength, fileextension, &headersbuf);
 	if (headersLength < 0) {
@@ -74,16 +78,26 @@ int sendResponse(SSL *ssl, const char *statusCode, responseHeaders *headers, con
 	return 0;
 }
 
+/* 
+ * Add standard headers and send headers and body
+ * Return 0 on success, other on failure
+ * Reads and sends body of filesize bytes from fd, n bytes at a time
+ * bodylength: a meaningful value is necessary
+ * lastModified: if 0, won't add lastModified header
+ * File extension: used to set mime type. If it is NULL, mimetype will be text/plain // TODO: verify that
+ */
 int sendResponseBuffered(SSL *ssl, const char *statusCode, responseHeaders *headers, const requestHeaders *requestHeaders, int fd, int filesize, time_t lastModified, const char *fileextension)
 {
 	int res;
+
+	// build headers
 	char *headersbuf;
 	int headersLength = buildHeaders(headers, requestHeaders, statusCode, lastModified, filesize, fileextension, &headersbuf);
 	if (headersLength < 0) {
 		return 1;
 	}
 
-	// Send headers and file
+	// Send headers
 	res = SSL_write(ssl, headersbuf, headersLength);
 	free(headersbuf);
 	if (res != headersLength) {
@@ -91,6 +105,7 @@ int sendResponseBuffered(SSL *ssl, const char *statusCode, responseHeaders *head
 		return 3;
 	}
 
+	// send file
 	char filebuf[BUFSIZ];
 	ssize_t bytesRead;
 	while ((bytesRead = read(fd, filebuf, BUFSIZ)) > 0) {
@@ -104,8 +119,10 @@ int sendResponseBuffered(SSL *ssl, const char *statusCode, responseHeaders *head
 	return 0;
 }
 
-// response without body
-// Public
+/* 
+ * Add standard headers and send headers
+ * Return 0 on success, other on failure
+ */
 int sendResponseNoBody(SSL *ssl, responseHeaders *headers, const char *statusCode, const requestHeaders *requestHeaders)
 {
 	char *headersbuf;
@@ -122,30 +139,19 @@ int sendResponseNoBody(SSL *ssl, responseHeaders *headers, const char *statusCod
 	return 0;
 }
 
-/*
-if (filepath != NULL) {
-	char *filebuf;
-	res = loadRequestedFile(filepath, &filebuf, filesize);
-	if (res != 0) {
-		//responseHeaders headers404;
-		//initialiseResponseHeaders(&headers404);
-		//fileNotFound(ssl, &headers404, requestHeaders);
-		return 2;
-	}
-	// won't scale with large file size
-*/
-
 #define OFF_TDIGITS 19
 #define OFF_TSTRMAX (OFF_TDIGITS+1)
 
-// Sets headers content length, last modified, content type, date +
-// and then builds headers into malloced char array
-// sets *headersbuf to malloced memory that must be freed
-// returns header length
-// if provided lastModified is 0, will not set last-Modified
-// I have all this in one function because I want to keep the pointers in the headers struct on the stack
-// because stack is per thread but heap is per process
-// do not use headers after this function returns
+/* 
+ * Sets headers content length, last modified, content type, date +
+ * and then builds headers into malloced string
+ * sets *headersbuf to malloced memory that must be freed
+ * Returns header length
+ * if provided lastModified is 0, will not set last-Modified
+ * I have all this in one function because I want to keep the pointers in the headers struct on the stack
+ * because stack is per thread but heap is per process
+ * do not use headers after this function returns
+*/
 int buildHeaders(responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf) 
 {
 	// this is a bad way of doing it as all the headers must be in ram in different strings at the same time
@@ -177,7 +183,7 @@ int buildHeaders(responseHeaders *headers, const requestHeaders *requestHeaders,
 	// content type
 	//setContentType(TRUE, fileExtension, &(headers->ContentType.value));
 	if (fileExtension != NULL) {
-		headers->ContentType.value = contentType.setContentType(TRUE, fileExtension);
+		headers->ContentType.value = setContentType(TRUE, fileExtension);
 	}
 	
 	return produceHeaders(statusCode, headersbuf, headers);
@@ -225,4 +231,17 @@ void setFileHeaders(responseHeaders *headers, const requestHeaders *requestHeade
 {
 	
 }
+*/
+
+/*
+if (filepath != NULL) {
+	char *filebuf;
+	res = loadRequestedFile(filepath, &filebuf, filesize);
+	if (res != 0) {
+		//responseHeaders headers404;
+		//initialiseResponseHeaders(&headers404);
+		//fileNotFound(ssl, &headers404, requestHeaders);
+		return 2;
+	}
+	// won't scale with large file size
 */

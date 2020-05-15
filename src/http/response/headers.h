@@ -1,13 +1,6 @@
 #ifndef HEADERS_H
 #define HEADERS_H
 
-#include <stdlib.h>
-#include <time.h>
-
-//#include "constants.h"
-//#include "../../../helpers/bool/bool.h"
-//#include "../../../helpers/hashtable/hashtableG.h"
-
 struct headerPair {
     const char *label; // const char* const label
     char *value;
@@ -42,8 +35,6 @@ struct responseHeaders {
     headerPair LastModified;
 };
 typedef struct responseHeaders responseHeaders;
-
-// structure to map value to statusCode
 
 int initialiseResponseHeaders(responseHeaders *headers);
 int produceHeaders(const char *statusCode, char **headersstrP, const responseHeaders *headers);

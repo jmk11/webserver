@@ -37,14 +37,6 @@ enum UIR {
     UIR1
 };
 
-// two INITS in different enums.. both at 0 but seems bad
-
-struct headerPairBool {
-    const char* const label;
-    bool value;
-};
-typedef struct headerPairBool headerPairBool;
-
 struct queryParameter {
     const char *label;
     const char *value;
@@ -68,8 +60,19 @@ struct requestHeaders {
 };
 typedef struct requestHeaders requestHeaders;
 
-int initialiseRequestHeaders(requestHeaders *headers);
+//int initialiseRequestHeaders(requestHeaders *headers);
 const char *parseHeaders(requestHeaders *headers, char *headersstr);
 void freeRequestHeaders(requestHeaders *headers);
+
+char *manageHost(requestHeaders *headers, char *headersstr);
+char *manageUA(requestHeaders *headers, char *headersstr);
+char *manageAccept(requestHeaders *headers, char *headersstr);
+char *manageAcceptLanguage(requestHeaders *headers, char *headersstr);
+char *manageAcceptEncoding(requestHeaders *headers, char *headersstr);
+char *manageDNT(requestHeaders *headers, char *headersstr);
+char *manageConnection(requestHeaders *headers, char *headersstr);
+char *manageUIR(requestHeaders *headers, char *headersstr);
+char *manageReferer(requestHeaders *headers, char *headersstr);
+char *manageIfModifiedSince(requestHeaders *headers, char *headersstr);
 
 #endif /* REQUESTHEADERS_H */

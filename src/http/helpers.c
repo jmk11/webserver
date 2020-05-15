@@ -9,7 +9,11 @@
 #define DATEFORMAT "%a, %d %b %Y %H:%M:%S %Z"
 
 
-// return number of bytes written, -1 for failure
+/*
+* Convert current time into HTTP date format
+* And place in buf
+* Returns number of bytes written, or -1 on failure
+*/
 int getHTTPDate(char *buf, unsigned int size)
 {
     time_t t = time(NULL);
@@ -29,6 +33,11 @@ int getHTTPDate(char *buf, unsigned int size)
     return bytesWritten;
 }
 
+/*
+* Converts given time to HTTP date format
+* And places in buf
+* Returns 0 on success, 1 on failure
+*/
 int timetoHTTPDate(time_t time, char *buf, unsigned int size)
 {
     struct tm *tm = gmtime(&time);
@@ -43,11 +52,19 @@ int timetoHTTPDate(time_t time, char *buf, unsigned int size)
     return 0;
 }
 
-time_t HTTPDatetotime(const char *headersstr)
+/*
+* Converts HTTP date string to time_t time
+* Returns -1 on failure
+*/
+time_t HTTPDatetotime(const char *httpdate)
 {
     struct tm tm;
-    char *cur = strptime(headersstr, DATEFORMAT, &tm);
+    char *cur = strptime(httpdate, DATEFORMAT, &tm);
     if (cur == NULL) { return -1; }
+    time_t t = timegm(&tm);
+    if (t == -1) { perror("mktime() failed"); }
+    return t;
+
     //tm.tm_isdst = 0;
     //tm.tm_gmtoff = 0;
     //tm.tm_zone = "GMT";
@@ -56,7 +73,4 @@ time_t HTTPDatetotime(const char *headersstr)
     // strptime() does not support %Z. I do not think this manual setting is a proper solution.
     // and I'm not sure if the isdst value changes depending on time of year
     //time_t t = mktime(&tm);
-    time_t t = timegm(&tm);
-    if (t == -1) { perror("mktime() failed"); }
-    return t;
 }

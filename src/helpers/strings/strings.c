@@ -1,3 +1,7 @@
+/*
+* Helpers for strings
+*/
+
 #include <stdlib.h>
 #include <string.h>
 //#include <stdbool.h>
@@ -90,8 +94,8 @@ int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, c
 /*
 * Strcmp, but only true/false for equality, and stops at either null byte or given delimiter
 * if not equal, return 0
-* if equality test ended at delimiter, 1
-* if equality test ended at null byte, 2
+* if equal and equality test ended at delimiter, 1
+* if equal and equality test ended at null byte, 2
 * Updates *s1P to point to next byte, or null byte
 * So provide your string in s1 and comparison in s2
 * Not tested

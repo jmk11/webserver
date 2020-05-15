@@ -1,11 +1,14 @@
+/*
+* Build responseHeaders struct into a headers string
+*/
+
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "headers.h"
-//#include "responseheadersbase.h"
 #include "../../helpers/strings/strings.h"
-//#include "headerfns.h"
-#include "../../helpers/hashtable/hash.h"
+#include "../../helpers/hashtable/stringhash.h"
 #include "../statuscodes.h"
 
 #define HEADERSMAX 1024
@@ -34,18 +37,27 @@ static const struct responseHeaders responseHeadersBase = {
     .ReferrerPolicy = {"Referrer-Policy", NULL}
 };
 
+static const unsigned int numPairs = sizeof(struct responseHeaders) / sizeof(headerPair);
+
+/*
+ * Set up response headers struct - sets labels
+ * Must be done before response headers struct is used
+ * After calling this, you need only set .value on the headers you want and then call produceHeaders()
+*/
 int initialiseResponseHeaders(responseHeaders *headers) 
 {
     *headers = responseHeadersBase;
     return 0;
 }
 
-// produce headers string from responseHeaders values
-// return headers length, or -1 if fail
-// sets *headersstrP to malloced memory
+/* 
+ * Produce headers string from responseHeaders values.
+ * Return headers length, or -1 if fail.
+ * Sets *headersstrP to malloced memory.
+*/
 int produceHeaders(const char *status, char **headersstrP, const responseHeaders *headers)
 {
-    // check that doesn't pass headersmax. if so, realloc
+    // TODO: check that doesn't pass headersmax. if so, realloc
     char *headersstr = *headersstrP;
     headersstr = malloc(HEADERSMAX);
     if (headersstr == NULL) {
@@ -54,30 +66,32 @@ int produceHeaders(const char *status, char **headersstrP, const responseHeaders
     }
     //memset(*headersstr, 0, HEADERSMAX);
     headersstr[0] = 0;
+
+    // Add status message
     char *headersstrcur = headersstr;
-    // const char* pieces[6] = {"HTTP/1.1 ", statusCode, " ", getStatusMessage(statusCode), "\r\n", NULL};
     const char* pieces[4] = {"HTTP/1.1 ", status, "\r\n", NULL};
     int res = strlcat4(headersstr, &headersstrcur, pieces, HEADERSMAX);
     if (res != 0) { free(headersstr); return -1; }
     /*int bytesWritten = snprintf(*headersstr, HEADERSMAX, "HTTP/1.1 %s OK\r\n", statusCode);
     char *headersstrcur = *headersstr + bytesWritten;*/
 
+    // Add headers
     // I'm relying on struct layout which you aren't supposed to do but I want to try this
-    const headerPair *pair = headers;
-    unsigned int numPairs = sizeof(struct responseHeaders) / sizeof(headerPair);
+    const headerPair *pair = headers; // not casting because a warning seems fair
     for (unsigned int i = 0; i < numPairs; i++, pair++) {
         if (pair->value != NULL) {
             const char* pieces2[5] = {pair->label, ": ", pair->value, "\r\n", NULL};
             res = strlcat4(headersstr, &headersstrcur, pieces2, HEADERSMAX);
             if (res != 0) { free(headersstr); return -1; }
-            // can do this with one snprintf, but I would need to calculate the total number of bytes
-            // I intend to write so I can know if it is less
+            // can do this with snprintf, but I would need to calculate the total number of bytes so I can check that it fits in
         }
     }
+
+    // add final \r\n
     res = strlcat3(headersstr, &headersstrcur, "\r\n", HEADERSMAX);
     if (res != 0) { free(headersstr); return -1; }
     printf("\n%s\n", headersstr);    
     *headersstrP = headersstr;
 
-    return headersstrcur - headersstr;
+    return (int) (headersstrcur - headersstr);
 }

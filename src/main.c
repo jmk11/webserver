@@ -71,8 +71,7 @@ int main(int argc, char **argv)
 	//char *filebuf;
 
 	// initialise content type and header function hash tables
-	//int res = buildContentTypeHT();
-	int res = contentType.build(); // get rid of this, main shouldn't know about this maybe
+	int res = buildContentTypeHT(); // get rid of this, main shouldn't know about this maybe
 	if (res != 0) {
 		fprintf(stderr, "Couldn't build content type hash table.\nExiting.\n");
 		return 1;
@@ -106,8 +105,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	//destroyContentTypeHT();
-	contentType.destroy();
+	destroyContentTypeHT();
 	destroyHeaderFnsHT();
 	Close(logfd);
 	Close(serverfd);

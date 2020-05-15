@@ -3,21 +3,18 @@
 
 #include "../../helpers/bool/bool.h"
 
+/*
 struct ContentType {
     int (*build)(void);
     char *(*setContentType)(bool sameDomainReferer, const char *fileExtension);
     void (*destroy)(void);
 };
 typedef struct ContentType ContentType;
-//contentType contentType = {.build = buildContentTypeHT}
+extern ContentType contentType;
+*/
 
-/*
 int buildContentTypeHT(void);
 char *setContentType(bool sameDomainReferer, const char *fileExtension);
 void destroyContentTypeHT(void);
-*/
-
-extern ContentType contentType;
-
 
 #endif /* CONTENTTYPE_H */
