@@ -10,6 +10,7 @@
 
 #define HEADERSMAX 1024
 
+// why don't I include the colon?
 static const struct responseHeaders responseHeadersBase = {
     .Allow = {"Allow", NULL}, 
     .ContentLength = {"Content-Length", NULL},
@@ -28,6 +29,9 @@ static const struct responseHeaders responseHeadersBase = {
     .XFrameOptions = {"X-Frame-Options", NULL},
     .XContentTypeOptions = {"X-Content-Type-Options", NULL},
     .ContentSecurityPolicy =  {"Content-Security-Policy", NULL},
+    .StrictTransportSecurity = {"Strict-Transport-Security", NULL},
+    //.StrictTransportSecurity = {"Strict-Transport-Security: ", NULL}
+    .ReferrerPolicy = {"Referrer-Policy", NULL}
 };
 
 int initialiseResponseHeaders(responseHeaders *headers) 

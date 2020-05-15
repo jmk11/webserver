@@ -9,7 +9,7 @@
 //#include "../../../helpers/hashtable/hashtableG.h"
 
 struct headerPair {
-    const char *label;
+    const char *label; // const char* const label
     char *value;
 };
 typedef struct headerPair headerPair;
@@ -30,6 +30,8 @@ struct responseHeaders {
     headerPair XFrameOptions;
     headerPair XContentTypeOptions;
     headerPair ContentSecurityPolicy;
+    headerPair StrictTransportSecurity;
+    headerPair ReferrerPolicy;
     // entity headers
     headerPair Allow;
     headerPair ContentLength;
