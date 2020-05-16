@@ -102,7 +102,11 @@ void htDestroy(HashTable *ht)
     free(ht);
 }
 
-// return new beginning of list
+/*
+* Add item to elist , copying key and value into list.
+* Uses compare to compare keys.
+* Returns new beginning of list
+*/
 elist *elistAdd(elist *l, compareFn compare, copyFn copyKey, copyFn copyValue, const void *key, const void *value)
 {
     for (elist *cur = l; cur != NULL; cur = cur->next) {
@@ -124,6 +128,9 @@ elist *elistAdd(elist *l, compareFn compare, copyFn copyKey, copyFn copyValue, c
     return cur;
 }
 
+/*
+* Return item in elist l whose key matches key, or NULL if no such item
+*/
 void *elistFind(elist *l, compareFn compare, const void *key)
 {
     for (elist *cur = l; cur != NULL; cur = cur->next) {
@@ -134,6 +141,9 @@ void *elistFind(elist *l, compareFn compare, const void *key)
     return NULL;
 }
 
+/*
+* Free elist l
+*/
 void freeList(elist *l, freeFn freeKey, freeFn freeValue)
 {
     if (l != NULL) {

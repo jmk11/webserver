@@ -34,6 +34,30 @@ int strlcat1(char *dst, const char *src, unsigned int maxSize)
     return 0;
 }
 
+/*
+* Concatenate src to dst, such that length of string at dst (including null byte) does not exceed maxSize
+* Always null terminates dst
+* On success, return dst
+* If src did not finish before dst ran out of space, return NULL
+* !!! not tested
+*/
+char *strlcat5(char *dst, const char *src, unsigned int maxSize)
+{
+    char *dstEnd = dst + maxSize;
+    // find end of dst
+    char *cur = dst;
+    for (; cur < dstEnd-1 && *cur != 0; cur++) {}
+    // copy over
+    while (cur < dstEnd-1 && *src != 0) {
+        *(cur++) = *(src++);
+    }
+    *cur = 0;
+    if (*src != 0) {
+        return NULL;
+    }
+    return dst;
+}
+
 
 /*
 * Concatenate src to dst, starting at *dstCur
@@ -61,7 +85,7 @@ int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSiz
 }
 
 /* 
- * copies byes from src to dest, until either length bytes have been copied (including terminating null byte),
+ * copies bytes from src to dest, until either length bytes have been copied (including terminating null byte),
  * src hits a delim character,
  * or src null terminates.
  * dest will always be null terminated
@@ -130,62 +154,10 @@ int strcmpequntil(const char **s1P, const char *s2, char delim)
     return 1;
 }
 
-
-// THIS COMMENT IS FOR AN OLD VERSION
-// Always null-terminates UNLESS 2
-// Final string size will be AT MOST n bytes, INCLUDING null byte
-// NAME
-/*
- * This description is old
- * Starts writing at dst+curSize
- * Idea is that the current null byte is at dst+curSize
- * Copies from src until src is null terminated or address (dst+maxSize-1) is reached, whichever is sooner
- * Null terminate at dst+maxSize-1
- * Will always null terminate dst (unless (2)) and sets curSize to the total length of dst, not including the null byte
- * curSize will equal the given curSize + the number of bytes written, excluding terminating null byte
- * addSize, if not 0, is the number of bytes to add. If 0, will add until null byte is found (or run out of space etc.)
- * RETURNS:
- * 0 if all goes correctly
- * 1 if there was not enough space for src - ie copying was terminated before src's null byte was found, or before addSize was exhausted
- * 2 if the provided curSize is greater than or equal to the provided maxSize. In this case, no changes were made to any provided memory.
- */
-char strlcat2(char *dst, const char *src, unsigned int maxSize, unsigned int *curSize, unsigned int addSize)
-{
-    if (*curSize >= maxSize) { return 2; }
-
-    /*bool maxSizeChanged = FALSE; // this is stupid
-    if (addSize != 0 && (*curSize + addSize + 1 <= maxSize)) {
-        maxSize = *curSize + addSize + 1; // +1 because maxSize includes null byte while others do not.
-        maxSizeChanged = TRUE;
-    }*/
-
-    //if (addSize == 0) { addSize = maxSize - *curSize - 1; }
-    //if (addSize == 0) { addSize = maxSize; } // makes very big... takes out of equation... seems bad
-    // I should be able to change this somehow so only need addSize in if
-    // and prob something else to check if terminated copying because of addSize or because of original maxSize ...
-
-    // !! test this bad new stuff
-    char *start = dst + *curSize;
-    char *cur = start; //dst + *curSize;
-    while ((cur < dst + maxSize - 1) && ((addSize == 0 && *src != 0) || (addSize != 0 && cur < start + addSize))) {
-    //while ((*src != 0) && (cur < dst + (maxSize - 1)) && !(addSize != 0 && cur >= start + addSize)) { // or do as: if curSize < maxSize - 1
-        *(cur++) = *(src++);
-        (*curSize)++;
-    }
-    *cur = 0;
-    //*curSize = cur - dst - 1;
-    //if (*src != 0 && (cur != dst + (maxSize - 1))) {
-    if (cur == dst + (maxSize - 1) && !(addSize != 0 && cur == start + addSize)) {
-        // copying ended only because reached maxSize
-        return 1;
-    }
-
-    return 0;
-}
-
 /* 
  * Takes array of strings to copy to dst
  * Array must be finished with a null pointer
+ * Like {"this ", "is ", "a ", "string", NULL}
  * starts writing from *dstCur and updates *dstCur to next byte to write into (ie to null byte)
  * if dstCur is NULL, starts writing from dstStart and obv doesn't update dstcur
  * return 0: success
@@ -194,7 +166,7 @@ char strlcat2(char *dst, const char *src, unsigned int maxSize, unsigned int *cu
 */
 int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned int maxSize)
 {
-    const char* cursrc;
+    // set dst
     char* dst;
     if (dstCur != NULL) {
         maxSize = maxSize - (*dstCur - dstStart);
@@ -204,9 +176,16 @@ int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned i
         dst = dstStart;
     }
     
+    // find current end of dst
     char* dstEnd = dstStart + maxSize;
     for (; dst < dstEnd-1 && *dst != 0; dst++) {}
+    
+    // copy srces
+    const char* cursrc;
     for (unsigned int i = 0; srces[i] != NULL; i++) {
+        // unsigned int i overflow - infinite loop if isn't NULL terminated - or until segfault
+        // is unsigned int overflow the one that's undefined in the C standard or is it signed int?
+        // why am I not doing the way below with pointer arithmetic
         cursrc = srces[i];
         while (dst < dstEnd-1 && *cursrc != 0) {
             *(dst++) = *(cursrc++);
@@ -245,7 +224,7 @@ int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned i
 */
 char *terminateAt(char *s, char end) 
 {
-    if (s == NULL) { return NULL;}
+    //if (s == NULL) { return NULL;} // don't provide NULL
     for (; *s != end && *s != 0; s++) {}
     if (*s == 0) { return NULL; }
 	*s = 0;
@@ -259,7 +238,7 @@ char *terminateAt(char *s, char end)
 */
 char *terminateAtOpts(char *s, const char *ends, char *found)
 {
-    if (s == NULL || ends == NULL) { return NULL;}
+    //if (s == NULL || ends == NULL) { return NULL;} // don't provide NULL
     for (; *s != 0; s++) {
         for (const char *endcur = ends; *endcur != 0; endcur++) {
             if (*s == *endcur) {
@@ -299,7 +278,8 @@ char *stripwsp(char *s)
 }
 
 /*
-* Return 0 if string fit, 1 if not
+* Copy length bytes from src to dst
+* Return 0 if string src terminated within length bytes, 1 if not
 * Always null terminates dst within length bytes
 */
 int strlcpy(char *dst, const char *src, size_t length) {
@@ -313,3 +293,57 @@ int strlcpy(char *dst, const char *src, size_t length) {
     }
     return 0;
 }
+
+// THIS COMMENT IS FOR AN OLD VERSION
+// Always null-terminates UNLESS 2
+// Final string size will be AT MOST n bytes, INCLUDING null byte
+// NAME
+/*
+ * This description is old
+ * Starts writing at dst+curSize
+ * Idea is that the current null byte is at dst+curSize
+ * Copies from src until src is null terminated or address (dst+maxSize-1) is reached, whichever is sooner
+ * Null terminate at dst+maxSize-1
+ * Will always null terminate dst (unless (2)) and sets curSize to the total length of dst, not including the null byte
+ * curSize will equal the given curSize + the number of bytes written, excluding terminating null byte
+ * addSize, if not 0, is the number of bytes to add. If 0, will add until null byte is found (or run out of space etc.)
+ * RETURNS:
+ * 0 if all goes correctly
+ * 1 if there was not enough space for src - ie copying was terminated before src's null byte was found, or before addSize was exhausted
+ * 2 if the provided curSize is greater than or equal to the provided maxSize. In this case, no changes were made to any provided memory.
+ */
+/*
+char strlcat2(char *dst, const char *src, unsigned int maxSize, unsigned int *curSize, unsigned int addSize)
+{
+    if (*curSize >= maxSize) { return 2; }
+
+    // bool maxSizeChanged = FALSE; // this is stupid
+    // if (addSize != 0 && (*curSize + addSize + 1 <= maxSize)) {
+    //     maxSize = *curSize + addSize + 1; // +1 because maxSize includes null byte while others do not.
+    //     maxSizeChanged = TRUE;
+    // }
+
+    //if (addSize == 0) { addSize = maxSize - *curSize - 1; }
+    //if (addSize == 0) { addSize = maxSize; } // makes very big... takes out of equation... seems bad
+    // I should be able to change this somehow so only need addSize in if
+    // and prob something else to check if terminated copying because of addSize or because of original maxSize ...
+
+    // !! test this bad new stuff
+    char *start = dst + *curSize;
+    char *cur = start; //dst + *curSize;
+    while ((cur < dst + maxSize - 1) && ((addSize == 0 && *src != 0) || (addSize != 0 && cur < start + addSize))) {
+    //while ((*src != 0) && (cur < dst + (maxSize - 1)) && !(addSize != 0 && cur >= start + addSize)) { // or do as: if curSize < maxSize - 1
+        *(cur++) = *(src++);
+        (*curSize)++;
+    }
+    *cur = 0;
+    // *curSize = cur - dst - 1;
+    //if (*src != 0 && (cur != dst + (maxSize - 1))) {
+    if (cur == dst + (maxSize - 1) && !(addSize != 0 && cur == start + addSize)) {
+        // copying ended only because reached maxSize
+        return 1;
+    }
+
+    return 0;
+}
+*/

@@ -9,42 +9,35 @@
 
 #define MAXPORT 65535
 
-
+/*
+* Print "[prefix] Connection from [IP]:[port]\n"
+* prefix can be NULL - no prefix will be printed
+*/
 void printSource(struct sockaddr_in addrStruct, const char *prefix)
 {
-	// from a 1521 sample code
 	char addrstr[16];
-	in_addr_t addrNum = ntohl (addrStruct.sin_addr.s_addr);
-	snprintf (
-		addrstr, 16, "%u.%u.%u.%u",
-		addrNum >> 24 & 0xff,
-		addrNum >> 16 & 0xff,
-		addrNum >>  8 & 0xff,
-		addrNum       & 0xff
-	);
+	stringIP(addrstr, addrStruct.sin_addr.s_addr);
+
 	if (prefix != NULL) {
-		printf ("%s Connection from %s:%hu\n", prefix, addrstr, addrStruct.sin_port);
+		printf("%s Connection from %s:%hu\n", prefix, addrstr, addrStruct.sin_port);
 	}
 	else {
-		printf ("Connection from %s:%hu\n", addrstr, addrStruct.sin_port);
+		printf("Connection from %s:%hu\n", addrstr, addrStruct.sin_port);
 	}
 }
 
+/*
+* Write "Connection from [IP]:[Port]\n" to logfd
+* Returns 0 on success, 1 on failure
+*/
 int logSource(int logfd, struct sockaddr_in addrStruct)
 {
-	// from a 1521 sample code
 	char addrstr[16];
-	in_addr_t addrNum = ntohl (addrStruct.sin_addr.s_addr);
-	snprintf (
-		addrstr, 16, "%u.%u.%u.%u",
-		addrNum >> 24 & 0xff,
-		addrNum >> 16 & 0xff,
-		addrNum >>  8 & 0xff,
-		addrNum       & 0xff
-	);
+	stringIP(addrstr, addrStruct.sin_addr.s_addr);
 	unsigned int bufsize = 100;
-	char buf[bufsize];
+	char buf[bufsize]; // variable length array?
 	snprintf(buf, bufsize, "Connection from %s:%hu\n", addrstr, addrStruct.sin_port);
+	
 	int bytesWritten = write(logfd, buf, strlen(buf));
 	if (bytesWritten != strlen(buf)) {
 		// if strlen(buf) was the unsigned equivalent of -1, and it got cast to signed for this comparison,
@@ -64,6 +57,8 @@ int logSource(int logfd, struct sockaddr_in addrStruct)
 
 /*
 * Convert IP from addrstruct to string
+* addrstr must be 16 bytes char array
+* Does addrst[16] mean anything to the compiler or is it just same as char*
 */
 int stringIP(char addrstr[16], in_addr_t ip)
 {
@@ -71,7 +66,7 @@ int stringIP(char addrstr[16], in_addr_t ip)
 	in_addr_t addrNum = ntohl(ip);
 	snprintf (
 		addrstr, 16, "%u.%u.%u.%u",
-		addrNum >> 24 & 0xff,
+		addrNum >> 24 & 0xff, // why do you need to & on this one
 		addrNum >> 16 & 0xff,
 		addrNum >>  8 & 0xff,
 		addrNum       & 0xff
@@ -79,9 +74,14 @@ int stringIP(char addrstr[16], in_addr_t ip)
 	return 0;
 }
 
+/*
+* Drop uid and euid to goaluid, and test success
+* exit() on failure
+* gid??
+*/
 int dropPermissions(unsigned short goaluid) {
 	printf("Dropping permissions after binding...\n");
-	// !! also need to drop group privileges!
+	// !! TODO: also need to drop group privileges!
 	setuid(goaluid);
 	printf("uid after drop: %d %d\n", getuid(), geteuid());
 	setuid(0);
@@ -91,11 +91,14 @@ int dropPermissions(unsigned short goaluid) {
 	/*if (getuid() != goaluid || geteuid() != goaluid) {
 		exit(PERMISSIONSERROR);
 	}*/
+	// use the above version, this is just because it's easier to deal with when testing
+	// maybe I should use a #ifdef TESTING or something
 	if (getuid() == 0 || geteuid() == 0) {
 		exit(PERMISSIONSERROR);	
 	}
 	return 0;
 	// does this check introduce security problems by calling setuid and seteuid 0?
+	// adding them to the binary
 }
 
 /*
@@ -130,4 +133,3 @@ int getPort(const char *string, unsigned short *port)
     *port = (unsigned short) lport;
     return 0;
 }
-

@@ -12,7 +12,7 @@ struct HashTable {
     void* (*value)(const void *key);
     void (*destroy)(void);
 };
-// It can't not pass the hashtable itself becuase you have no other way to get it
+// You can't not pass the hashtable itself becuase you have no other way to get it
 */
 
 typedef bool (*compareFn) (const void *, const void *);
