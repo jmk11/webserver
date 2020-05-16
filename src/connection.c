@@ -4,7 +4,7 @@
 // #include <sys/types.h>
 // #include <stdlib.h>
 // #include <assert.h>
-// #include <sys/stat.h>
+#include <sys/stat.h>
 // #include <limits.h>
 // #include <linux/limits.h>
 // #include <string.h>
@@ -30,20 +30,20 @@
 #define INMEM404 "<html><head><title>404</title></head><body>404</body></html>"
 
 int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source);
-char *getResource(const char *filename, char newResource[MAXPATH]);
+int sanitiseResource(const char *resource);
 char *getExtension(const char *filepath);
 char *nullbyte(void);
 int buildFilePath(const char *filename, char *filepath, unsigned int filepathsize);
 int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode);
 //int fileNotAvailable(SSL *ssl);
 int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const requestHeaders *request, const char *filepath, int filesize, time_t lastModified, const char *fileextension);
+off_t getFileDetails(char filepath[MAXPATH], time_t *lastModified);
 
 //static const size_t inmem404length = strlen(INMEM404);
-static const size_t inmem404length = sizeof(INMEM404);
+static const size_t inmem404length = sizeof(INMEM404) -1; // !! check this: -1 because of null byte?
 
 int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source) {
-	// copied
-	// set up SSL connection
+	// set up SSL connection - from openSSL wiki
 	SSL *ssl = SSL_new(ctx);
 	if (ssl == NULL) { 
 		return 1;
@@ -82,7 +82,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in s
 }
 
 /*
-* Handla specific request
+* Handle specific request
 * Return 0 on okay and continue connection
 * Return 1 on bad and continue connection
 * Return -1 on finish connection
@@ -94,9 +94,9 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 
 	int filesize;
 	int res;
-	char resourceArr[MAXPATH];
+	//char resourceArr[MAXPATH];
 	char filepath[MAXPATH];
-	char *resource;
+	//char *resource;
 	//char fileextension[MAXPATH];
 
 	struct responseHeaders response;
@@ -124,27 +124,17 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	logRequest(logfd, source, &request);
 	
 	// Convert requested resource to actual resource name
-
-	resource = getResource(request.resource, resourceArr);
-	if (resource == NULL) {
+	//resource = getResource(request.resource, resourceArr);
+	res = sanitiseResource(request.resource);
+	if (res != 0) {
 		fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-		res = 1;
 		goto RETURN;
 		//return request.ConnectionKeep ? 1 : -1;
 	}
-	/*if (res != 0) {
-		if (res == 1) {
-			fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
-		}
-		else if (res == 2) {
-			fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-		}
-		return request.ConnectionKeep ? 1 : -1;
-	}*/
-	printf("Filename: %s\n", resource);
+	printf("Filename: %s\n", request.resource);
 
 	// Convert resource name to file path
-	res = buildFilePath(resource, filepath, MAXPATH);
+	res = buildFilePath(request.resource, filepath, MAXPATH);
 	if (res != 0) {
 		fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
 		res = 1;
@@ -152,57 +142,25 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 		//return request.ConnectionKeep ? 1 : -1;
 	}
 
-	// Resolve symbolic link if file is symbolic link
-	/*char *resolvedpath = resolveSymlink(filepath);
-	if (resolvedPath == NULL) {
-		fileNotFound(ssl, &headers, &requestheaders, STATUS_NOTFOUND);
-	}*/
-	// This doesn't need to be done for any file function, the OS handles it
-	// it needs to be done to get the extension for the mime type
-
 	// not sure if this file should need to know that last modified and file size are required headers?
 	// would be nice if could just give filename and let response send it
 	// but would have to check that file actually exists before doing that
 	// and it would be a waste to do that without getting the details
 
-	// if filename is a directory, resource = filename/.directory.html
-
 	// Check file exists and is accessible, check file type, and get file size and last modified time
+	// and append to filepath index.html/.directory.html if file is a directory
 	time_t lastModified;
-	off_t filesizePure;
-	getDetails: filesizePure = getFileDetails(filepath, &lastModified);
-	if (filesizePure < 0) {
-		switch (filesizePure) {
-			case STAT_ISDIR:
-				res = strlcat1(filepath, "/.directory.html", MAXPATH);
-				if (res != 0) {
-					fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-					break;
-				}
-				goto getDetails;
-				// obviously I will remove this goto
-				// or maybe not, I like it now.....
-				//break;
-			case STAT_NOTREADABLE:
-				fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-				break;
-			case STAT_NOTFOUND:
-				fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
-				break;
-			/*default:
-				fileNotFound(ssl);
-				return badReturn;*/
-		}
-		res = 1;
+	off_t filesizeres = getFileDetails(filepath, &lastModified);
+	if (filesizeres < 0) {
+		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
 		goto RETURN;
-		//return request.ConnectionKeep ? 1 : -1;
 	}
-	else if (filesizePure > INT_MAX) {
+	else if (filesizeres > INT_MAX) {
 		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
 		goto RETURN;
 		//return request.ConnectionKeep ? res : -1;
 	}
-	filesize = (int) filesizePure;
+	filesize = (int) filesizeres;
 
 	// check for 304 not modified
 	if (lastModified <= request.IfModifiedSince) {
@@ -228,13 +186,129 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	return request.ConnectionKeep ? res : -1;
 }
 
-// too many parameters
-// something isn't right, html pages don't display properly
-// I think the css is being ignored, possibly because of my restrictive security headers
-// limiting browser to only treat it as html and not html+css
+/*
+* Get filesize and last modification time of file in filepath
+* If filepath is a directory, will change filepath to the actual file to present
+* On success, return filesize and fill lastModified
+* On failure (file doesn't exist, permissions not suitable, ...), return -1
+*/
+off_t getFileDetails(char filepath[MAXPATH], time_t *lastModified) 
+{
+	// 	if not directory:
+	// 		try file
+	//		if fail:
+	//			fileNotFound
+	// 	if directory:
+	// 		try index.html
+	//		if fail:
+	//			try .directory.html	
+	//			if fail:
+	//				file NotFound
+
+	struct stat filestat;
+	int res = stat(filepath, &filestat);
+	if (res != 0) {
+		// perror 
+		return -1;
+	}
+	else if ((filestat.st_mode & S_IFDIR) != 0) { // file is a directory
+		//------------------------------------------------------------
+		/*
+		char newfilepath[MAXPATH];
+		char *options[2] = {"/index.html", "/.directory.html"};
+		res = 1;
+		for (unsigned int i = 0; i < 2 && res != 0; i++) {
+			char *strs[3] = {filepath, options[i], NULL};
+			strlcat4(newfilepath, NULL, strs, MAXPATH);
+			res = stat(filepath, &filestat);
+		}
+		if (res != 0) {
+			return -1;
+		}
+		strlcpy(filepath, newfilepath, MAXPATH);
+		*/
+		//--------------------------------------------------------------
+		/*
+		char newfilepath[MAXPATH];
+		char *strs[3] = {filepath, "/index.html", NULL};
+		strlcat4(newfilepath, NULL, strs, MAXPATH);
+		res = stat(filepath, &filestat);
+		if (res != 0) {
+			strs[1] = "/.directory.html";
+			strlcat4(newfilepath, NULL, strs, MAXPATH);
+			res = stat(filepath, &filestat);
+			if (res != 0) {
+				return -1;
+			}
+		}
+		strlcpy(filepath, newfilepath, MAXPATH);
+		*/
+		//-------------------------------------------------------------
+		char filepathcopy[MAXPATH];
+		strlcpy(filepathcopy, filepath, MAXPATH);
+		// if res == 1
+
+		res = strlcat1(filepath, "/index.html", MAXPATH);
+		if (res != 0) {
+			return -1;
+		}
+		res = stat(filepath, &filestat);
+		if (res != 0) { // index.html doesn't exist, try .directory.html
+			res = strlcat1(filepathcopy, "/.directory.html", MAXPATH);
+			if (res != 0) {
+				return -1;
+			}
+			res = stat(filepathcopy, &filestat);
+			if (res != 0) {
+				return -1;
+			}
+			strlcpy(filepath, filepathcopy, MAXPATH);
+			// if res == 0, .directory.html is the file and details are in filestat
+		}
+		//----------------------------------------------------------------
+	}
+
+	if (filestat.st_size < 0) { return -1; } // I'm not sure if this is possible..
+	//if (filestat.st_size > INT_MAX) { return STAT_TOOLARGE; }
+	*lastModified = filestat.st_mtime;
+	if (! isReadable(filepath)) {
+		return -1;
+	}
+	return filestat.st_size;
+	// putting in explicit conversion to show that I have done the work to make sure it is okay
+}
 
 /*
-* Send file
+*
+*/
+// infinite recursion if index.html or .directory.html are directories
+/*
+off_t getFileDetails(char filepath[MAXPATH], time_t *lastModified, char **backups) 
+{
+	struct stat filestat;
+	int res = stat(filepath, &filestat);
+	if (res != 0) {
+		// perror 
+		if (backups[1] != NULL) {
+			res = strlcat1(filepath, backups[1], MAXPATH);
+			if (res != 0) {
+				return 1;
+			}
+			return getFileDetails(filepath, lastModified);
+		}
+		else if ((filestat.st_mode & S_IFDIR) != 0) { // file is a directory
+			
+		}
+	}		
+	return 0;
+}
+*/
+
+// too many parameters
+
+/*
+* Send file as body of HTTP response
+* Return 0 on success, 1 on failure
 */
 int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const requestHeaders *request, const char *filepath, int filesize, time_t lastModified, const char *fileextension) {
 	int res;
@@ -265,31 +339,33 @@ int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const 
 
 /*
 * Sanitise resource and convert resource to actual location on computer using some hardcoded conversions
-* When called, filename length < bufsiz
-* Returns filename on success and filename can be used as the resource
+* When called, resource length < bufsiz
+* Returns resource on success and resource can be used as the resource
 * Returns newResource if newResource should be used as the resource
 * Returns NULL if resource requested was rejected during sanitisation
 * // could I avoid copying except when necessary?
 * // I could return a value to indicate that the resource is unchanged/changed
 * // and only write to newResource if changed
 */
-char *getResource(const char *filename, char newResource[MAXPATH]) 
+int sanitiseResource(const char *resource) 
 {
-	for (unsigned int i = 0; filename[i+1] != 0; i++) {
-		if (filename[i] == '.' && filename[i+1] == '.') {
-			return NULL;
+	for (unsigned int i = 0; resource[i+1] != 0; i++) {
+		if (resource[i] == '.' && resource[i+1] == '.') {
+			return 1;
 		}
 	}
+	return 0;
 	// I don't like this way
+	/*
 	if (filename[0] == 0) {
 		strncpy(newResource, "index.html", MAXPATH); // check this isn't 1 byte overflow
 		return newResource;
-	}
+	}*/
 	// convert % encoding: // TODO: MOVE THIS TO REQUESTHEADERS.C
 	// https://github.com/dnmfarrell/URI-Encode-C/blob/master/src/uri_encode.c
-	//convertPCencoding(filename, newResource);
+	// convertPCencoding(filename, newResource);
 	
-	return filename;
+	// return resource;
 }
 
 // this is way too complicated and lengthy
@@ -415,10 +491,7 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 	time_t lastModified;
 	off_t filesizePure = getFileDetails(filepath, &lastModified);
 	if (filesizePure < 0 || filesizePure > INT_MAX) {
-		fprintf(stderr, "Could not access 404.html to send\n");
-		// should have in-memory 404 for 404ing a 404. But wouldn't work with sendresponse interface which only takes files
-		// well now sendResponse is different
-		//res = sendResponseNoBody(ssl, headers, statusCode, requestHeaders);
+		fprintf(stderr, "Could not access 404.html to send, or it's too big\n");
 		res = sendResponse(ssl, statusCode, headers, requestHeaders, INMEM404, /*strlen(INMEM404)*/inmem404length, 0, "html");
 		// stlren should be optimised out right?
 	}
@@ -467,4 +540,62 @@ char *resolveSymlink(const char *filepath, char targetpath[PATH_MAX]) {
 	}
 	return filepath;
 }
+*/
+
+// Resolve symbolic link if file is symbolic link
+	/*char *resolvedpath = resolveSymlink(filepath);
+	if (resolvedPath == NULL) {
+		fileNotFound(ssl, &headers, &requestheaders, STATUS_NOTFOUND);
+	}*/
+	// This doesn't need to be done for any file function, the OS handles it
+	// it needs to be done to get the extension for the mime type
+
+// getResource()
+/*if (res != 0) {
+		if (res == 1) {
+			fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
+		}
+		else if (res == 2) {
+			fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		}
+		return request.ConnectionKeep ? 1 : -1;
+	}*/
+
+/*
+time_t lastModified;
+	off_t filesizePure;
+	GETDETAILS: 
+	filesizePure = getFileDetails(filepath, &lastModified);
+	if (filesizePure < 0) {
+		switch (filesizePure) {
+			case STAT_ISDIR:
+				res = strlcat1(filepath, "/.directory.html", MAXPATH);
+				if (res != 0) {
+					fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
+					break;
+				}
+				goto GETDETAILS;
+				// obviously I will remove this goto
+				// or maybe not, I like it now.....
+				//break;
+			case STAT_NOTREADABLE:
+				fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+				break;
+			case STAT_NOTFOUND:
+				fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+				break;
+			// default:
+			// 	fileNotFound(ssl);
+			// 	return badReturn;
+		}
+		res = 1;
+		goto RETURN;
+		//return request.ConnectionKeep ? 1 : -1;
+	}
+	else if (filesizePure > INT_MAX) {
+		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		goto RETURN;
+		//return request.ConnectionKeep ? res : -1;
+	}
+	filesize = (int) filesizePure
 */

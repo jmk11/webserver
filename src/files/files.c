@@ -9,17 +9,18 @@
 //#include "constants.h"
 #include "../helpers/bool/bool.h"
 
-bool isReadable(const char *filepath);
+// bool isReadable(const char *filepath);
 
 /*
 * Returns file size, and puts last modified time in *lastModified
 * On failure or special circumstance, returns one of negative constants specifying situation
 */
+/*
 off_t getFileDetails(const char *filepath, time_t *lastModified) 
 {
 	struct stat filestat;
 	int res = stat(filepath, &filestat);
-	if (res != 0) { /* perror */ return STAT_NOTFOUND; }
+	if (res != 0) { return STAT_NOTFOUND; } // perror
 	//mode_t fileType = filestat.st_mode & S_IFMT;
 	//if (fileType == S_IFDIR) { return STAT_ISDIR; }
 	if ((filestat.st_mode & S_IFDIR) != 0) { return STAT_ISDIR; }
@@ -33,6 +34,7 @@ off_t getFileDetails(const char *filepath, time_t *lastModified)
 	// putting in explicit conversion to show that I have done the work to make sure it is okay
 	// stat has time of last modification, for cache
 }
+*/
 
 // is this worth the system calls of getuid and getgid when I can just fail open()
 bool isReadable(const char *filepath)
