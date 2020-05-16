@@ -1,29 +1,29 @@
 //#define __USE_MISC
 
-#include <stdio.h>
-//#include <sys/socket.h>
-#include <netinet/in.h>
+// #include <sys/socket.h>
+// #include <netinet/in.h>
+// #include <sys/types.h>
+// #include <string.h>
+// #include <stdlib.h>
+// #include <assert.h>
+// #include <sys/stat.h>
+// #include <limits.h>
+// #include <linux/limits.h>
+// #include <string.h>
+// #include <linux/stat.h>
+// #include <stdio.h>
 #include <fcntl.h>
-//#include <sys/types.h>
-#include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <assert.h>
-#include <sys/stat.h>
-//#include <limits.h>
-#include <linux/limits.h>
-#include <string.h>
-//#include <fcntl.h>
-//#include <linux/stat.h>
 
-#include "constants.h"
+
+// #include "constants.h"
 #include "uid.h"
 #include "common.h"
 #include "connection.h"
 #include "wrappers/wrappers.h" // only needs this for error codes, this isn't right
 #include "ssl/ssl.h"
-#include "helpers/strings/strings.h"
-#include "helpers/bool/bool.h"
+// #include "helpers/strings/strings.h"
+// #include "helpers/bool/bool.h"
 #include "http/response/contenttype.h"
 #include "http/request/headerfns.h"
 

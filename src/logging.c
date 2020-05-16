@@ -5,7 +5,7 @@
 #include "logging.h"
 #include "common.h"
 #include "http/helpers.h"
-#include "http/request/requestheaders.h"
+// #include "http/request/requestheaders.h"
 
 /*
 * Log time, source IP and port, resource request, user agent to given file descriptor

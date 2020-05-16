@@ -2,7 +2,7 @@
 * Helpers for strings
 */
 
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <string.h>
 //#include <stdbool.h>
 // what is the c standard for bool
@@ -12,8 +12,9 @@
 //#include "bool/bool.h"
 
 /*
-* Concatenate src to dst, so that length of string at dst (including null byte) does not exceed maxSize
+* Concatenate src to dst, such that length of string at dst (including null byte) does not exceed maxSize
 * Always null terminates dst
+* On success, return 0
 * If src did not finish before dst ran out of space, return 1
 * !!! not tested
 */
@@ -38,8 +39,8 @@ int strlcat1(char *dst, const char *src, unsigned int maxSize)
 * Concatenate src to dst, starting at *dstCur
 * Will concatenate max maxSize bytes from dstStart
 * Sets *dstCur to current destination
-* Returns 0 on success, 1 if src did not null terminate before space ran out
 * Always null terminates src
+* Returns 0 on success, 1 if src did not null terminate before space ran out
 * !!!! not tested
 */
 int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSize)
@@ -59,13 +60,15 @@ int strlcat3(char *dstStart, char **dstCur, const char *src, unsigned int maxSiz
     return 0;
 }
 
-/* copies byes from src to dest until either length bytes have been copied (including terminating null byte)
- * or src null terminates
- * return 0 on success
- * 1 if delimiter was not found in src before copying ended
+/* 
+ * copies byes from src to dest, until either length bytes have been copied (including terminating null byte),
+ * src hits a delim character,
+ * or src null terminates.
  * dest will always be null terminated
- * If cur is not NULL, Will update *cur to point to the next byte after the delimiter
+ * If cur is not NULL, Will update *cur to point to the next byte after the delimiter in src
  * If src null terminates within given length, *cur will point to the null byte
+ * return 0 on success
+ * return 1 if delimiter was not found in src before copying ended
 */
 int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, const char **cur)
 {
@@ -93,11 +96,11 @@ int strncpyuntil(char *dest, const char *src, unsigned int length, char delim, c
 
 /*
 * Strcmp, but only true/false for equality, and stops at either null byte or given delimiter
-* if not equal, return 0
-* if equal and equality test ended at delimiter, 1
-* if equal and equality test ended at null byte, 2
 * Updates *s1P to point to next byte, or null byte
 * So provide your string in s1 and comparison in s2
+* if not equal, return 0
+* if equal and equality test ended at delimiter, return 1
+* if equal and equality test ended at null byte, return 2
 * Not tested
 */
 int strcmpequntil(const char **s1P, const char *s2, char delim)
@@ -180,12 +183,13 @@ char strlcat2(char *dst, const char *src, unsigned int maxSize, unsigned int *cu
     return 0;
 }
 
-/* Takes array of strings to concatenate to dst
+/* 
+ * Takes array of strings to copy to dst
  * Array must be finished with a null pointer
  * starts writing from *dstCur and updates *dstCur to next byte to write into (ie to null byte)
  * if dstCur is NULL, starts writing from dstStart and obv doesn't update dstcur
- * 0: success
- * 1: not enough space for src
+ * return 0: success
+ * return 1: not enough space for srces
  * !!!! not tested
 */
 int strlcat4(char* dstStart, char** dstCur, const char* const *srces, unsigned int maxSize)

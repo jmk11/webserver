@@ -1,8 +1,7 @@
-#include <netinet/in.h>
+// #include <netinet/in.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-//#include <string.h>
 
 #include "common.h"
 #include "constants.h"

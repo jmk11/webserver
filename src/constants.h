@@ -37,4 +37,3 @@ typedef char byte;
 //typedef struct in_addr IPType;
 
 #endif //PROJECT_CONSTANTS_H
-

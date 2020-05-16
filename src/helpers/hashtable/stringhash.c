@@ -34,7 +34,7 @@ void *copystr(const void *str)
 }
 
 /*
-* Function for freeing string keys or values, for use in hash table
+* Function for freeing string keys or values created by copystr, for use in hash table
 */
 void freestr(void *str)
 {

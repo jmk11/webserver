@@ -1,29 +1,28 @@
-#include <stdio.h>
-//#include <sys/socket.h>
-//#include <netinet/in.h>
-//#include <fcntl.h>
-//#include <sys/types.h>
+// #include <stdio.h>
+// #include <sys/socket.h>
+// #include <netinet/in.h>
+// #include <sys/types.h>
+// #include <stdlib.h>
+// #include <assert.h>
+// #include <sys/stat.h>
+// #include <limits.h>
+// #include <linux/limits.h>
+// #include <string.h>
 #include <string.h>
-//#include <stdlib.h>
-//#include <unistd.h>
-#include <assert.h>
-#include <sys/stat.h>
-//#include <limits.h>
-#include <linux/limits.h>
-//#include <string.h>
 #include <openssl/ssl.h>
 #include <fcntl.h>
 #include <unistd.h>
 
 #include "connection.h"
 #include "logging.h"
+#include "constants.h"
 #include "wrappers/wrappers.h" // only needs this for error codes, this isn't right
 #include "files/files.h"
 #include "http/statuscodes.h"
 #include "http/response/response.h"
-#include "helpers/bool/bool.h"
 #include "helpers/strings/strings.h"
-#include "http/helpers.h"
+// #include "helpers/bool/bool.h"
+// #include "http/helpers.h"
 
 
 #define FILESDIRECTORY "files/"

@@ -2,14 +2,14 @@
 * Build responseHeaders struct into a headers string
 */
 
-#include <string.h>
+// #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "headers.h"
 #include "../../helpers/strings/strings.h"
-#include "../../helpers/hashtable/stringhash.h"
-#include "../statuscodes.h"
+// #include "../../helpers/hashtable/stringhash.h"
+// #include "../statuscodes.h"
 
 #define HEADERSMAX 1024
 

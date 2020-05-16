@@ -2,10 +2,11 @@
 * Hash table mapping file extension to MIME type
 */
 
-#include <string.h>
+// #include <string.h>
+#include <stddef.h> // for NULL. should import this or something else?
 
 #include "contenttype.h"
-#include "headers.h"
+// #include "headers.h"
 #include "../../helpers/hashtable/hashtableG.h"
 #include "../../helpers/hashtable/stringhash.h"
 

@@ -1,8 +1,12 @@
+/*
+* Separate application serving HTTP redirects to HTTPS server. Domain defined in config/domain.txt
+*/
+
 #include <stdio.h>
-#include <netinet/in.h>
+// #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <fcntl.h>
 
 #include "uid.h"

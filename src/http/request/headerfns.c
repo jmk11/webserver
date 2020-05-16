@@ -2,8 +2,8 @@
 * Hashtable mapping request header label to a function that processes the value
 */
 
-#include <string.h>
-#include <stdlib.h>
+// #include <string.h>
+// #include <stdlib.h>
 
 #include "headerfns.h"
 #include "requestheaders.h"
@@ -63,6 +63,7 @@ void destroyHeaderFnsHT()
 
 /*
 * Look up hash table and return function pointer
+* This function maybe isn't necessary? if i returned ht instead of making static
 */
 char* (*getHeaderFn(const char *str))(requestHeaders*, char*) 
 {

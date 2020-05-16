@@ -1,7 +1,7 @@
 #define _XOPEN_SOURCE // for strptime
 //#define __USE_XOPEN
 #define _DEFAULT_SOURCE // for timegm // not sure about this
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <stdio.h>
 
 #include "helpers.h"
