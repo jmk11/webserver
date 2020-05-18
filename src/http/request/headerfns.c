@@ -48,6 +48,8 @@ int buildHeaderFnsHT()
     if (res != 0) { return 1; }
     res = htAdd(ht, "If-Modified-Since:", (const void*) manageIfModifiedSince);
     if (res != 0) { return 1; }
+    res = htAdd(ht, "Cache-Control:", (const void*) manageCacheControl);
+    if (res != 0) { return 1; }
 
     return 0;
 }

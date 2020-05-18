@@ -8,8 +8,6 @@
 
 #include "headers.h"
 #include "../../helpers/strings/strings.h"
-// #include "../../helpers/hashtable/stringhash.h"
-// #include "../statuscodes.h"
 
 #define HEADERSMAX 1024
 

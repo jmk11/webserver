@@ -55,6 +55,7 @@ struct requestHeaders {
     enum UIR UpgradeInsecureRequests;
     char *Referer;
     time_t IfModifiedSince;
+    char *CacheControl;
     HashTable *queryParameters; // hashtable seems like overkill, normally only a few query parameters
     // could do as array of structs {label, value}
 };
@@ -74,5 +75,6 @@ char *manageConnection(requestHeaders *headers, char *headersstr);
 char *manageUIR(requestHeaders *headers, char *headersstr);
 char *manageReferer(requestHeaders *headers, char *headersstr);
 char *manageIfModifiedSince(requestHeaders *headers, char *headersstr);
+char *manageCacheControl(requestHeaders *headers, char *headersstr);
 
 #endif /* REQUESTHEADERS_H */

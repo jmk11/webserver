@@ -31,6 +31,7 @@ static const struct requestHeaders requestHeadersBase = {
     .UpgradeInsecureRequests = UIRINIT,
     .Referer = NULL,
     .IfModifiedSince = -1,
+    .CacheControl = NULL,
     .queryParameters = NULL
 };
 
@@ -260,6 +261,11 @@ char *manageAcceptLanguage(requestHeaders *headers, char *headersstr)
 char *manageAcceptEncoding(requestHeaders *headers, char *headersstr)
 {
     return manageCharHeader(headersstr, &headers->AcceptEncoding);
+}
+
+char *manageCacheControl(requestHeaders *headers, char *headersstr)
+{
+    return manageCharHeader(headersstr, &headers->CacheControl);
 }
 
 char *manageDNT(requestHeaders *headers, char *headersstr)
