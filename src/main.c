@@ -79,6 +79,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	char domain[DOMAINSIZE];
+	res = readDomain(domain);
+	if (res != 0) {
+		fprintf(stderr, "Can't read domain name from config file. Exiting\n");
+		return 1;
+	}
+
 	// open log file
 	int logfd = open(LOGFILE, O_WRONLY | O_CREAT | O_APPEND, 0660);
 	if (logfd < 0) {
@@ -97,7 +104,7 @@ int main(int argc, char **argv)
 			printSource(clientAddr, NULL);
 			if (fileLogging) { logSource(logfd, clientAddr); }
 			// spawn new thread
-			handleConnection(clientfd, ctx, logfd, clientAddr);
+			handleConnection(clientfd, ctx, logfd, clientAddr, domain);
 			close(clientfd);
 			// what do if can't close client socket?
 		}

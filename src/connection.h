@@ -6,6 +6,6 @@
 
 // #include "constants.h"
 
-int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source);
+int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source, const char *domain);
 
 #endif /* CONNECTION_H */

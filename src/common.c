@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "common.h"
 #include "constants.h"
 #include "wrappers/wrappers.h"
 
 #define MAXPORT 65535
+
 
 /*
 * Print "[prefix] Connection from [IP]:[port]\n"
@@ -131,4 +133,30 @@ int getPort(const char *string, unsigned short *port)
     }
     *port = (unsigned short) lport;
     return 0;
+}
+
+
+// can generalise some of this and readCert?
+int readDomain(char domain[DOMAINSIZE])
+{
+	int fd = open(DOMAINFILE, O_RDONLY);
+    if (fd < 0) {
+        perror("Can't open domain config file");
+        return 1;
+    }
+    // obviously deal with size etc.
+    int bytesRead = read(fd, domain, DOMAINSIZE-1);
+    if (bytesRead <= 0) {
+        perror("Can't read domain config file");
+        return 1;
+    }
+	domain[bytesRead] = 0;
+	if (domain[bytesRead-1] == '\n') {
+		domain[bytesRead-1] = 0;
+	}
+	/*for (unsigned int i = 0; i < bytesRead; i++) {
+
+	}*/
+    close(fd);
+	return 0;
 }

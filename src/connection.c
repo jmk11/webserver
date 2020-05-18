@@ -29,7 +29,7 @@
 #define FILECUTOFF 10000
 #define INMEM404 "<html><head><title>404</title></head><body>404</body></html>"
 
-int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source);
+int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source, const char *domain);
 int sanitiseResource(const char *resource);
 char *getExtension(const char *filepath);
 char *nullbyte(void);
@@ -38,11 +38,12 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 //int fileNotAvailable(SSL *ssl);
 int sendFile(SSL *ssl, const char *statusCode, responseHeaders *response, const requestHeaders *request, const char *filepath, int filesize, time_t lastModified, const char *fileextension);
 off_t getFileDetails(char filepath[MAXPATH], time_t *lastModified);
+int redirect(SSL *ssl, const char *domain, const char *filepath1, const char *filepath2) ;
 
 //static const size_t inmem404length = strlen(INMEM404);
 static const size_t inmem404length = sizeof(INMEM404) -1; // !! check this: -1 because of null byte?
 
-int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source) {
+int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in source, const char *domain) {
 	// set up SSL connection - from openSSL wiki
 	SSL *ssl = SSL_new(ctx);
 	if (ssl == NULL) { 
@@ -70,7 +71,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in s
 		else {
 			requestbuf[requestLen] = 0;
 			printf("%s\n", requestbuf);
-			int res = handleRequest(ssl, requestbuf, logfd, source);
+			int res = handleRequest(ssl, requestbuf, logfd, source, domain);
 			continueConnection = (res >= 0);
 		}
 	} while (continueConnection);
@@ -87,7 +88,7 @@ int handleConnection(int clientfd, SSL_CTX *ctx, int logfd, struct sockaddr_in s
 * Return 1 on bad and continue connection
 * Return -1 on finish connection
 */
-int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source)//, ssize_t requestLength)
+int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source, const char *domain)//, ssize_t requestLength)
 {
 	printf("Response:\n");
 	//int badReturn = 1;
@@ -152,7 +153,24 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 	time_t lastModified;
 	off_t filesizeres = getFileDetails(filepath, &lastModified);
 	if (filesizeres < 0) {
-		res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		if (filesizeres == -1) {
+			res = fileNotFound(ssl, &response, &request, STATUS_NOTFOUND);
+		}
+		else if (filesizeres == -2) {
+			/*res = strlcat1(filepath, "/", MAXPATH);
+			if (res != 0) {
+				res = fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
+			}
+			else {*/
+			res = redirect(ssl, domain, request.resource, "/");
+			if (res != 0) {
+				res = fileNotFound(ssl, &response, &request, STATUS_URITOOLONG);
+			}
+			else {
+				res = -1;
+				// clean this up
+			}
+		}
 		goto RETURN;
 	}
 	else if (filesizeres > INT_MAX) {
@@ -180,7 +198,7 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 		goto RETURN; // hehe
 		//return request.ConnectionKeep ? res : -1;
 	}
-
+ 
 	RETURN:
 	freeRequestHeaders(&request);
 	return request.ConnectionKeep ? res : -1;
@@ -191,6 +209,8 @@ int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in sour
 * If filepath is a directory, will change filepath to the actual file to present
 * On success, return filesize and fill lastModified
 * On failure (file doesn't exist, permissions not suitable, ...), return -1
+* On failure (file is a directory and must be redirected to filepath+'/'), return -2
+* This is bad
 */
 off_t getFileDetails(char filepath[MAXPATH], time_t *lastModified) 
 {
@@ -212,6 +232,9 @@ off_t getFileDetails(char filepath[MAXPATH], time_t *lastModified)
 		return -1;
 	}
 	else if ((filestat.st_mode & S_IFDIR) != 0) { // file is a directory
+		if (filepath[strlen(filepath)-1] != '/') {
+			return -2;
+		}
 		//------------------------------------------------------------
 		/*
 		char newfilepath[MAXPATH];
@@ -505,6 +528,25 @@ int fileNotFound(SSL *ssl, responseHeaders *headers, const requestHeaders *reque
 		}
 	}
 	return res;
+}
+
+/*
+* Send 301 redirect to domain/filepath1filepath2
+*/
+int redirect(SSL *ssl, const char *domain, const char *filepath1, const char *filepath2) 
+{
+	const unsigned int responsesize = 200;
+	char response[responsesize];
+	response[0] = 0;
+	//snprintf(response, responsesize, "HTTP/1.1 301 Moved Permanently\r\nLocation: %s%s%s\r\n\r\n", domain, filepath1, filepath2);
+	const char *strs[] = {"HTTP/1.1 301 Moved Permanently\r\nLocation: ", domain, "/", filepath1, filepath2, " \r\n\r\n", NULL};
+	int res = strlcat4(response, NULL, strs, responsesize);
+	if (res != 0) {
+		return 1;
+	}
+	res = SSL_write(ssl, response, strlen(response));
+	printf("%d %s", res, response);
+	return 0;
 }
 
 /*

@@ -16,12 +16,9 @@
 #include "helpers/bool/bool.h"
 
 #define RESPSIZE 300
-#define DOMAINSIZE 100
 #define REQSIZE 300
-#define DOMAINFILE "config/domain.txt"
 #define LOGFILE "logs/HTTPlog.txt"
 
-int readDomain(char domain[DOMAINSIZE]);
 int handleConnection(int clientfd, const char *domain);
 int getResourceRequest(char *request, char **filename);
 
@@ -120,31 +117,6 @@ int handleConnection(int clientfd, const char *domain)
 	snprintf(response, RESPSIZE, "HTTP/1.1 301 Moved Permanently\r\nLocation: %s%s\r\n\r\n", domain, resource);
 	send(clientfd, response, strlen(response), 0);
 
-	return 0;
-}
-
-// can generalise some of this and readCert?
-int readDomain(char domain[DOMAINSIZE])
-{
-	int fd = open(DOMAINFILE, O_RDONLY);
-    if (fd < 0) {
-        perror("Can't open domain config file");
-        return 1;
-    }
-    // obviously deal with size etc.
-    int bytesRead = read(fd, domain, DOMAINSIZE-1);
-    if (bytesRead <= 0) {
-        perror("Can't read domain config file");
-        return 1;
-    }
-	domain[bytesRead] = 0;
-	if (domain[bytesRead-1] == '\n') {
-		domain[bytesRead-1] = 0;
-	}
-	/*for (unsigned int i = 0; i < bytesRead; i++) {
-
-	}*/
-    close(fd);
 	return 0;
 }
 
