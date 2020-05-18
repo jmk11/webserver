@@ -1,0 +1,3 @@
+Problem: renaming doesnt count as modifying for time modified. 
+For example: rename a file to index.html so that it is presented instead of directory listing. But the last-modified time of the file before it was renamed will be used, and server may return 304, so directory listing is still active.
+Client will need to clear cache.

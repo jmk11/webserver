@@ -57,6 +57,7 @@ struct requestHeaders {
     time_t IfModifiedSince;
     char *CacheControl;
     HashTable *queryParameters; // hashtable seems like overkill, normally only a few query parameters
+    bool resourceMalloced; // Was the resource field malloced? If yes, free.
     // could do as array of structs {label, value}
 };
 typedef struct requestHeaders requestHeaders;

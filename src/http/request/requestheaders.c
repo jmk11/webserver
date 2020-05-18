@@ -17,6 +17,9 @@ char *extractResource(requestHeaders *headers, char *headersstr, char *finish);
 char *extractQueryParameters(requestHeaders *headers, char *headersstr);
 char *manageVersion(requestHeaders *headers, const char *headersstr);
 char *manageCharHeader(char *headersstr, char **resultLocation);
+char *uriDecode(const char *headersstr, char **cur);
+char *percentDecode(const char *headersstr, char *dest);
+char hexcharToNum(char hexchar);
 
 static const struct requestHeaders requestHeadersBase = {
     .method = METHODINIT,
@@ -32,7 +35,8 @@ static const struct requestHeaders requestHeadersBase = {
     .Referer = NULL,
     .IfModifiedSince = -1,
     .CacheControl = NULL,
-    .queryParameters = NULL
+    .queryParameters = NULL,
+    .resourceMalloced = FALSE
 };
 
 /*
@@ -40,8 +44,13 @@ static const struct requestHeaders requestHeadersBase = {
 */
 void freeRequestHeaders(requestHeaders *headers)
 {
-    if (headers != NULL && headers->queryParameters != NULL) {
-        htDestroy(headers->queryParameters);
+    if (headers != NULL) {
+        if (headers->resourceMalloced == TRUE) {
+            free(headers->resource);
+        }
+        if (headers->queryParameters != NULL) {
+            htDestroy(headers->queryParameters);
+        }
     }
 }
 
@@ -126,13 +135,99 @@ char *extractResource(requestHeaders *headers, char *headersstr, char *finish)
         return NULL;
     }
     headers->resource = headersstr+1;
+    char *cur;
+    char *resource = uriDecode(headersstr+1, &cur);
+    if (*cur == 0) { return NULL; }
+    if (resource != NULL) {
+        headers->resource = resource;
+        headers->resourceMalloced = TRUE;
+    }
     // resource ends at either space or ?, indicating start of query parameters
-    char *cur = strpbrk(headers->resource, " ?");
-    if (cur == NULL) { return NULL; }
+   /* char *cur = strpbrk(headers->resource, " ?");
+    if (cur == NULL) { return NULL; }*/
     *finish = *cur;
     *cur = 0;
     // strprbk vs terminateAtOpts
     return cur + 1;
+}
+
+/*
+* Decode percent encoding. If there is none, return NULL.
+* If there is, return pointer to malloced decoded string.
+* Set *cur to address of first space or ? in headersstr, or ***
+*/
+char *uriDecode(const char *headersstr, char **cur)
+{
+    bool decode = FALSE;
+    unsigned int decodestart;
+    unsigned int i;
+    for (i = 0; headersstr[i] != ' ' && headersstr[i] != '?' && headersstr[i] != 0; i++) {
+        if (headersstr[i] == '%' && decode == FALSE) {
+            decode = TRUE;
+            decodestart = i;
+        }
+    }
+    if (decode) {
+        char *decoded = malloc(i+1);
+        strncpy(decoded, headersstr, decodestart);
+        *cur = percentDecode(&headersstr[decodestart], decoded+decodestart);
+        // if failed: ??
+        return decoded;
+    }
+    *cur = &headersstr[i];
+    return NULL;
+}
+
+char *percentDecode(const char *headersstr, char *dest) 
+{
+    for (; *headersstr != ' ' && *headersstr != '?' && *headersstr != 0; headersstr++) {
+        if (*headersstr == '%') {
+            char hexdigit1 = *(headersstr+1);
+            char hexdigit2 = *(headersstr+2);
+            char hexdigit1char = hexcharToNum(hexdigit1);
+            if (hexdigit1char != -1) {
+                char hexdigit2char = hexcharToNum(hexdigit2);
+                if (hexdigit2char != -1) {
+                    char val = hexdigit1char << 4 | hexdigit2char;
+                    *(dest++) = val;
+                    headersstr = headersstr + 2;
+                    continue;
+                }
+            }
+        }
+        *(dest++) = *headersstr;
+        /*
+            if (hexdigit1char == -1) {
+                goto COPY; // copy
+            }
+            char hexdigit2char = hexcharToNum(hexdigit2);
+            if (hexdigit2char == -1) {
+                goto COPY; // copy
+            }
+            char val = hexdigit1char << 4 | hexdigit2char;
+            *(dest++) = val;
+            headersstr = headersstr + 3;
+        }
+        else {
+            COPY:
+            *(dest++) = *headersstr;
+        }
+        */
+    }
+    return headersstr;
+}
+
+char hexcharToNum(char hexchar)
+{
+    if (hexchar >= '0' && hexchar <= '9') {
+        return hexchar - '0';
+    }
+    if (hexchar >= 'a' && hexchar <= 'f') {
+        return 10 + hexchar - 'a';
+    }
+    else {
+        return -1;
+    }
 }
 
 /*
