@@ -26,7 +26,7 @@
 
 
 #define FILESDIRECTORY "files/"
-#define FILECUTOFF 10000
+#define FILECUTOFF 10000000
 #define INMEM404 "<html><head><title>404</title></head><body>404</body></html>"
 
 int handleRequest(SSL *ssl, char *requestbuf, int logfd, struct sockaddr_in source, const char *domain);

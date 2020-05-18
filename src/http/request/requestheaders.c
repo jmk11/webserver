@@ -222,9 +222,13 @@ char hexcharToNum(char hexchar)
     if (hexchar >= '0' && hexchar <= '9') {
         return hexchar - '0';
     }
-    if (hexchar >= 'a' && hexchar <= 'f') {
-        return 10 + hexchar - 'a';
+    if (hexchar >= 'A' && hexchar <= 'F') {
+        return 10 + hexchar - 'A';
     }
+    if (hexchar >= 'a' && hexchar <= 'f') {
+        return 10 + hexchar - 'A';
+    }
+    // !! what is the specification - uppercase or either?
     else {
         return -1;
     }

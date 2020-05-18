@@ -8,6 +8,7 @@
 #define MAXSIZE 150
 // same as MAXPATH so should move to one imported definition
 // or should connection and response be like independent modules
+#define FILEBUFSIZE 1000000
 
 int buildHeaders(responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf);
 int buildHeadersNoBody(responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode, char **headersbuf);
@@ -106,15 +107,21 @@ int sendResponseBuffered(SSL *ssl, const char *statusCode, responseHeaders *head
 	}
 
 	// send file
-	char filebuf[BUFSIZ];
+	char filebuf[FILEBUFSIZE];
 	ssize_t bytesRead;
-	while ((bytesRead = read(fd, filebuf, BUFSIZ)) > 0) {
+	unsigned int count = 0;
+	while ((bytesRead = read(fd, filebuf, FILEBUFSIZE)) > 0) {
 		res = SSL_write(ssl, filebuf, bytesRead);
 		if (res != bytesRead) {
 			perror("Error send file");
 			return 3;
 		}
+		if (count++ % 1000 == 0) {
+			printf("%d, %d bytes\n", count, count*FILEBUFSIZE);
+		}
 	}
+	printf("%d, %d bytes\n", count, count*FILEBUFSIZE);
+
 
 	return 0;
 }

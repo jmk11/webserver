@@ -30,6 +30,7 @@ Run HTTP server with:
 
 #### Features
 Request headers taken into account:  
+HTTP version  
 DNT  
 Connection  
 If-Modified-Since  
