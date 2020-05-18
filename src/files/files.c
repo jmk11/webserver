@@ -75,7 +75,7 @@ int loadRequestedFile(const char *filepath, char **filebuf, size_t filesize)
 		return MALLOCERROR;
 	}
 	ssize_t bytesRead = read(fd, *filebuf, filesize);
-	if (bytesRead != filesize) {
+	if (bytesRead < 0 || (size_t) bytesRead != filesize) {
 		return FILEERROR;
 	}
 	

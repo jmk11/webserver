@@ -16,14 +16,11 @@
 #include <unistd.h>
 
 
-// #include "constants.h"
 #include "uid.h"
 #include "common.h"
 #include "connection.h"
 #include "wrappers/wrappers.h" // only needs this for error codes, this isn't right
 #include "ssl/ssl.h"
-// #include "helpers/strings/strings.h"
-// #include "helpers/bool/bool.h"
 #include "http/response/contenttype.h"
 #include "http/request/headerfns.h"
 
@@ -99,6 +96,7 @@ int main(int argc, char **argv)
 		else {
 			printSource(clientAddr, NULL);
 			if (fileLogging) { logSource(logfd, clientAddr); }
+			// spawn new thread
 			handleConnection(clientfd, ctx, logfd, clientAddr);
 			close(clientfd);
 			// what do if can't close client socket?

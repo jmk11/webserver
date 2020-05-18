@@ -39,17 +39,16 @@ int logSource(int logfd, struct sockaddr_in addrStruct)
 	snprintf(buf, bufsize, "Connection from %s:%hu\n", addrstr, addrStruct.sin_port);
 	
 	int bytesWritten = write(logfd, buf, strlen(buf));
-	if (bytesWritten != strlen(buf)) {
-		// if strlen(buf) was the unsigned equivalent of -1, and it got cast to signed for this comparison,
-		// and write returned -1, then bytesWritten == strlen would be true
-		// would add check that strlen(buf) is <= INT_MAX, but ofc that would be a waste of execution time because we can see that strlen(buf) is small.. right?
-		// does the signed get cast to unsigned or the unsigned to signed for this comparison? Or is it undefined and that's the problem?
-		if (bytesWritten < 0) {
-			perror("Couldn't write to log file");
-		}
-		else {
-			fprintf(stderr, "Couldn't write desired bytes to log file\n");
-		}
+	// if strlen(buf) was the unsigned equivalent of -1, and it got cast to signed for this comparison,
+	// and write returned -1, then bytesWritten == strlen would be true
+	// would add check that strlen(buf) is <= INT_MAX, but ofc that would be a waste of execution time because we can see that strlen(buf) is small.. right?
+	// does the signed get cast to unsigned or the unsigned to signed for this comparison? Or is it undefined and that's the problem?
+	if (bytesWritten < 0) {
+		perror("Couldn't write to log file");
+		return 1;
+	}
+	else if ((size_t) bytesWritten != strlen(buf)) {
+		fprintf(stderr, "Couldn't write desired bytes to log file\n");
 		return 1;
 	}
 	return 0;
