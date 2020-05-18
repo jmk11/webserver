@@ -27,6 +27,7 @@ struct responseHeaders {
     headerPair ReferrerPolicy;
     // entity headers
     headerPair Allow;
+    headerPair ContentDisposition;
     headerPair ContentLength;
     headerPair ContentLanguage;
     headerPair ContentLocation;

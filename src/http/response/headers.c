@@ -32,7 +32,8 @@ static const struct responseHeaders responseHeadersBase = {
     .ContentSecurityPolicy =  {"Content-Security-Policy", NULL},
     .StrictTransportSecurity = {"Strict-Transport-Security", NULL},
     //.StrictTransportSecurity = {"Strict-Transport-Security: ", NULL}
-    .ReferrerPolicy = {"Referrer-Policy", NULL}
+    .ReferrerPolicy = {"Referrer-Policy", NULL},
+    .ContentDisposition = {"Content-Disposition", NULL}
 };
 
 static const unsigned int numPairs = sizeof(struct responseHeaders) / sizeof(headerPair);

@@ -9,6 +9,7 @@
 // same as MAXPATH so should move to one imported definition
 // or should connection and response be like independent modules
 #define FILEBUFSIZE 1000000
+static const unsigned long streamcutoff = 100*1024*1024;
 
 int buildHeaders(responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode, time_t lastModified, off_t fileLength, const char *fileExtension, char **headersbuf);
 int buildHeadersNoBody(responseHeaders *headers, const requestHeaders *requestHeaders, const char *statusCode, char **headersbuf);
@@ -116,7 +117,7 @@ int sendResponseBuffered(SSL *ssl, const char *statusCode, responseHeaders *head
 			perror("Error send file");
 			return 3;
 		}
-		if (count++ % 1000 == 0) {
+		if (count++ % 50 == 0) {
 			printf("%d, %d bytes\n", count, count*FILEBUFSIZE);
 		}
 	}
@@ -169,13 +170,16 @@ int buildHeaders(responseHeaders *headers, const requestHeaders *requestHeaders,
 
 	// maximum signed 64 bit number 9,223,372,036,854,775,807 -> 19 digits
 	// content length
-	if (fileLength != -1) {
+	if (fileLength >= 0) {
 		char contentLength[OFF_TSTRMAX];
 		snprintf(contentLength, OFF_TSTRMAX, "%ld", fileLength);
 		headers->ContentLength.value = contentLength;
 
 		// content language and security headers
 		addMyHeaders(headers);
+		if ((unsigned long) fileLength > streamcutoff) {
+			headers->ContentDisposition.value = "attachment";
+		}
 	}
 	
 	// last modified
