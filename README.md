@@ -50,7 +50,8 @@ Content-Language
 Content-Type  (implemented with hash table mapping file extension to MIME type)  
 Date  
 Last-Modified  
-Tk  
+Tk
+
 X-Frame-Options  
 X-Content-Type-Options  
 Content-Security-Policy  
