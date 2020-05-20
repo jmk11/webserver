@@ -10,6 +10,8 @@ int addMyHeaders(responseHeaders *headers)
 
 	//securityheaders.com:
 	headers->XContentTypeOptions.value = "nosniff";
+	// blocks sniffing for style and script requests - only use if the mime type matches. And enable cross-origin-read-blocking for a few mime types.
+	// maybe I do want it to sniff, ... even though securityheaders.com says the 'only' good value is nosniff
 	headers->XFrameOptions.value = "SAMEORIGIN";
 	headers->ContentSecurityPolicy.value = "default-src 'self'; style-src 'unsafe-inline';";
 	// 'unsafe-inline' is to allow inline css within html pages

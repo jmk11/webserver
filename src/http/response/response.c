@@ -194,7 +194,7 @@ int buildHeaders(responseHeaders *headers, const requestHeaders *requestHeaders,
 	// content type
 	//setContentType(TRUE, fileExtension, &(headers->ContentType.value));
 	if (fileExtension != NULL) {
-		headers->ContentType.value = setContentType(TRUE, fileExtension);
+		headers->ContentType.value = setContentType(fileExtension);
 	}
 	
 	return produceHeaders(statusCode, headersbuf, headers);

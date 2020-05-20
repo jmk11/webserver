@@ -14,7 +14,7 @@ extern ContentType contentType;
 */
 
 int buildContentTypeHT(void);
-char *setContentType(bool sameDomainReferer, const char *fileExtension);
+char *setContentType(const char *fileExtension);
 void destroyContentTypeHT(void);
 
 #endif /* CONTENTTYPE_H */

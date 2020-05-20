@@ -102,6 +102,8 @@ const char *parseHeaders(requestHeaders *headers, char *headersstr)
 */
 char *extractMethod(requestHeaders *headers, const char *headersstr) 
 {
+    // it turns out that there is a strncasecmp function in strings.h, possibly want to use it
+    // probably not though, case matters
     if (strcmpequntil(&headersstr, "GET ", ' ') == 1) {
         headers->method = METHOD_GET;
         return headersstr;

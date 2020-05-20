@@ -2,6 +2,7 @@
 HTTPS webserver supporting GET and HEAD requests.  
 And HTTP server serving redirects to HTTPS server.  
 Combines with directory listings made by htmldirs repo.
+This is a fun/learning project only.
 
 #### Building:
 ```bash
@@ -29,16 +30,18 @@ Run HTTP server with:
 ```
 
 #### Features
-Request headers taken into account:  
+**Request headers taken into account:**  
 HTTP version  
 DNT  
 Connection  
 If-Modified-Since  
+-- Further request headers are processed into a request headers struct by http module
 
-Response headers used:  
+**Response headers used:**  
+Content-Disposition  
 Content-Length  
 Content-Language  
-Content-Type  
+Content-Type  (implemented with hash table mapping file extension to MIME type)  
 Date  
 Last-Modified  
 Tk  
@@ -47,3 +50,14 @@ X-Content-Type-Options
 Content-Security-Policy  
 Strict-Transport-Security  
 Referrer-Policy  
+
+**Directory welcome pages:**  
+1\. index.html  
+2\. .directory.html (can be created by [htmldirs](https://github.com/jmk11/htmldirs) repo)  
+3\. 404
+
+#### Modules
+Files  
+Helpers: generic hashtable, strings  
+HTTP  
+SSL
