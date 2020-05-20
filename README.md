@@ -1,10 +1,10 @@
 # webserver
 HTTPS webserver supporting GET and HEAD requests.  
-And HTTP server serving redirects to HTTPS server.  
-Combines with directory listings made by htmldirs repo.
-This is a fun/learning project only.
+With HTTP server serving redirects to HTTPS server.  
+Combines with directory listings made by htmldirs repo.  
+This is a fun/learning project only. Written on and for Linux.
 
-#### Building:
+### Building
 ```bash
 meson build --prefix="$installdirectory"
 cd build
@@ -15,11 +15,11 @@ Executables will be placed in $installdirectory.
 Website files go in $installdirectory/files.  
 Configuration files must be in $installdirectory/config
 
-#### Dependencies:
+### Dependencies
 meson, ninja (for building)  
 openssl
 
-#### Running:
+### Running
 Run with:
 ```bash
 ./webserver $port
@@ -29,7 +29,13 @@ Run HTTP server with:
 ./http $port
 ```
 
-#### Features
+### Modules
+Files  
+Helpers: generic hashtable, strings  
+HTTP: load request headers into struct, process response headers struct into string  
+SSL: set up and destroy openSSL
+
+### Features
 **Request headers taken into account:**  
 HTTP version  
 DNT  
@@ -55,9 +61,3 @@ Referrer-Policy
 1\. index.html  
 2\. .directory.html (can be created by [htmldirs](https://github.com/jmk11/htmldirs) repo)  
 3\. 404
-
-#### Modules
-Files  
-Helpers: generic hashtable, strings  
-HTTP  
-SSL
