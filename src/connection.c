@@ -272,14 +272,14 @@ off_t getFileDetails(char filepath[MAXPATH], time_t *lastModified)
 		// if res == 1
 
 		// try index.html
-		res = strlcat1(filepath, "/index.html", MAXPATH);
+		res = strlcat1(filepath, "index.html", MAXPATH);
 		if (res != 0) {
 			return -1;
 		}
 		res = stat(filepath, &filestat);
 		if (res != 0) {
 			// index.html doesn't exist, try .directory.html
-			res = strlcat1(filepathcopy, "/.directory.html", MAXPATH);
+			res = strlcat1(filepathcopy, ".directory.html", MAXPATH);
 			if (res != 0) {
 				return -1;
 			}
