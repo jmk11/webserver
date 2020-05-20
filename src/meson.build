@@ -7,7 +7,7 @@ openssl = dependency('libssl')
 crypto = dependency('libcrypto')
 subdir('ssl') # ssl_lib_static
 
-common_sources = ['common.c', 'common.h', 'constants.h', 'uid.h']
+common_sources = ['common.c', 'common.h', 'constants.h']
 common_lib_static = static_library('common',
                                     common_sources,
                                     link_with: wrappers_lib_static)

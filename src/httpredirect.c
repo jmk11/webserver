@@ -9,7 +9,7 @@
 // #include <stdlib.h>
 #include <fcntl.h>
 
-#include "uid.h"
+//#include "uid.h"
 #include "constants.h"
 #include "common.h"
 #include "wrappers/wrappers.h"
@@ -24,12 +24,15 @@ int getResourceRequest(char *request, char **filename);
 
 int main(int argc, char **argv)
 {
-	printf("uid at start: %d\n", getuid());
-	printf("euid at start: %d\n", geteuid());
-	
+	int res = checkPermissions();
+	if (res != 0) {
+		printf("Exiting.\n");
+		return 1;
+	}
+
 	unsigned short port;
 	if (argc == 2) {
-		int res = getPort(argv[1], &port);
+		res = getPort(argv[1], &port);
 		if (res != 0) {
 			fprintf(stderr, "Exiting.\n");
 			return ARGSERROR;
@@ -43,7 +46,9 @@ int main(int argc, char **argv)
 	int serverfd = buildSocket(port);
 	
 	// after binding port 80, can drop permissions
-	dropPermissions(UID);
+	if (getuid() == 0 || geteuid() == 0) {
+		dropPermissions();
+	}
 
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
@@ -51,7 +56,7 @@ int main(int argc, char **argv)
 	char httpsdomain[DOMAINSIZE];
 	bool fileLogging = TRUE;
 
-	int res = readDomain(httpsdomain);
+	res = readDomain(httpsdomain);
 	if (res != 0) {
 		fprintf(stderr, "Can't read domain name from config file. Exiting\n");
 		return 1;

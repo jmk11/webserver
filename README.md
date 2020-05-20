@@ -20,6 +20,12 @@ meson, ninja (for building)
 openssl
 
 ### Running
+Instead of running as superuser, you can use capabilities to give the binaries permission to bind on ports <1000:
+```bash
+setcap CAP_NET_BIND_SERVICE+ep ./webserver
+setcap CAP_NET_BIND_SERVICE+ep ./httpredirect
+```
+
 Run with:
 ```bash
 ./webserver $port

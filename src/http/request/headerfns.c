@@ -75,6 +75,7 @@ char* (*getHeaderFn(const char *str))(requestHeaders*, char*)
 // this part seems like a hack
 bool compareKey(const void *a, const void *b)
 {
+    // needs to be case insensitive
     return strcmpequntil((const char **) &a, b, ':') == 1;
 }
 

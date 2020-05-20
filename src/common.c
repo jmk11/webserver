@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+//#include <linux/capability.h>
+//#include <sys/capability.h>
 
 #include "common.h"
 #include "constants.h"
@@ -80,23 +82,34 @@ int stringIP(char addrstr[16], in_addr_t ip)
 * exit() on failure
 * gid??
 */
-int dropPermissions(unsigned short goaluid) {
-	printf("Dropping permissions after binding...\n");
+//int dropPermissions(unsigned short goaluid) {
+// cap_set_proc() - sys/capability.h doesn't seem to exist
+int dropPermissions() {
+	printf("Dropping permissions after binding: euid = uid...\n");
+	if (geteuid() == 0 && getuid() != 0) {
+		seteuid(getuid());
+	}
+	printf("uid after drop: %d %d\n", getuid(), geteuid());
+	if (geteuid() == 0) {
+		exit(PERMISSIONSERROR);
+	}
 	// !! TODO: also need to drop group privileges!
-	setuid(goaluid);
+	/*setuid(goaluid);
 	printf("uid after drop: %d %d\n", getuid(), geteuid());
 	setuid(0);
 	printf("uid fter setuid: %d %d\n", getuid(), geteuid());
 	seteuid(0);
-	printf("uid after seteuid: %d %d\n", getuid(), geteuid());
+	printf("uid after seteuid: %d %d\n", getuid(), geteuid());*/
+	// would like to setuid but to what uid??
+	//seteuid(getuid());
 	/*if (getuid() != goaluid || geteuid() != goaluid) {
 		exit(PERMISSIONSERROR);
 	}*/
 	// use the above version, this is just because it's easier to deal with when testing
 	// maybe I should use a #ifdef TESTING or something
-	if (getuid() == 0 || geteuid() == 0) {
+	/*if (getuid() == 0 || geteuid() == 0) {
 		exit(PERMISSIONSERROR);	
-	}
+	}*/
 	return 0;
 	// does this check introduce security problems by calling setuid and seteuid 0?
 	// adding them to the binary
@@ -158,5 +171,27 @@ int readDomain(char domain[DOMAINSIZE])
 
 	}*/
     close(fd);
+	return 0;
+}
+
+int checkPermissions()
+{
+	printf("uid at start: %d\n", getuid());
+	printf("euid at start: %d\n", geteuid());
+	char input[4];
+	if (getuid() == 0) {
+		printf("WARNING: Running with uid super user. Root privileges will not be able to be properly dropped. Please exit and use capabilities or setuid instead. Continue? Yes/No\n");
+		fgets(input, 4, stdin);
+		if (strcmp(input, "Yes") != 0) {
+			return 1;
+		}
+	}
+	else if (geteuid() == 0) {
+		printf("WARNING: running with euid super user. This is not recommended, use capabilities instead. Continue? Y/N.\n");
+		fgets(input, 2, stdin);
+		if (input[0] != 'Y' && input[0] != 'y') {
+			return 1;
+		}
+	}
 	return 0;
 }

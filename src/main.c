@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 
-#include "uid.h"
+// #include "uid.h"
 #include "common.h"
 #include "connection.h"
 #include "wrappers/wrappers.h" // only needs this for error codes, this isn't right
@@ -31,20 +31,16 @@ int main(int argc, char **argv)
 {
 	bool fileLogging = TRUE;
 
-	// initialise ssl
-	SSL_CTX *ctx = setupssl(SSLCONFIGLOCATION);
-	if (ctx == NULL) {
-		fprintf(stderr, "SSL setup failure. Exiting.\n");
+	int res = checkPermissions();
+	if (res != 0) {
+		printf("Exiting.\n");
 		return 1;
 	}
 
-	printf("uid at start: %d\n", getuid());
-	printf("euid at start: %d\n", geteuid());
-	
 	// get port
 	unsigned short port;
 	if (argc == 2) {
-		int res = getPort(argv[1], &port);
+		res = getPort(argv[1], &port);
 		if (res != 0) {
 			fprintf(stderr, "Exiting.\n");
 			return 1;
@@ -57,8 +53,17 @@ int main(int argc, char **argv)
 	
 	int serverfd = buildSocket(port);
 	
-	// after binding port 80, can drop permissions
-	dropPermissions(UID);
+	// after binding port 80, can drop permissions, if have them
+	if (getuid() == 0 || geteuid() == 0) {
+		dropPermissions();
+	}
+
+	// initialise ssl
+	SSL_CTX *ctx = setupssl(SSLCONFIGLOCATION);
+	if (ctx == NULL) {
+		fprintf(stderr, "SSL setup failure. Exiting.\n");
+		return 1;
+	}
 
 	//int res;
 	struct sockaddr_in clientAddr;
@@ -68,7 +73,7 @@ int main(int argc, char **argv)
 	//char *filebuf;
 
 	// initialise content type and header function hash tables
-	int res = buildContentTypeHT(); // get rid of this, main shouldn't know about this maybe
+	res = buildContentTypeHT(); // get rid of this, main shouldn't know about this maybe
 	if (res != 0) {
 		fprintf(stderr, "Couldn't build content type hash table.\nExiting.\n");
 		return 1;
