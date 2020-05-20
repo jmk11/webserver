@@ -148,6 +148,15 @@ int buildContentTypeHT()
     res = htAdd(ht, "swf", "application/x-shockwave-flash");
     if (res != 0) { return 1; }
 
+    res = htAdd(ht, "go", "text/plain");
+    if (res != 0) { return 1; }
+    res = htAdd(ht, "c", "text/plain");
+    if (res != 0) { return 1; }
+    res = htAdd(ht, "class", "text/plain");
+    if (res != 0) { return 1; }
+    res = htAdd(ht, "py", "text/plain");
+    if (res != 0) { return 1; }
+
 
     res = htAdd(ht, "default", "application/octet-stream");
     if (res != 0) { return 1; }

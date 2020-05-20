@@ -216,6 +216,7 @@ char *percentDecode(const char *headersstr, char *dest)
         }
         */
     }
+    *dest = 0;
     return headersstr;
 }
 

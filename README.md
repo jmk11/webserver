@@ -50,13 +50,13 @@ Content-Language
 Content-Type  (implemented with hash table mapping file extension to MIME type)  
 Date  
 Last-Modified  
-Tk
-
-X-Frame-Options  
-X-Content-Type-Options  
+Tk  
 Content-Security-Policy  
-Strict-Transport-Security  
+X-Content-Type-Options  
+X-Frame-Options  
 Referrer-Policy  
+Strict-Transport-Security  
+ 
 
 **Directory welcome pages:**  
 1\. index.html  
