@@ -35,6 +35,11 @@ Run HTTP server with:
 ./http $port
 ```
 
+#### Configuration
+*SSL Configuration:* Relative to the directory the executables are run in, you must provide a "config/certs.txt" file with the file locations (relative to the executable) of the certificate and the private key. Certificate location on first line, private key on second line.  
+*Domain name configuration*: You must provide "config/domain.txt" file which contains only the address of the HTTPS website, eg `https://localhost`.  
+Examples are included in the config directory in the repository.
+
 ### Modules
 Files  
 Helpers: generic hashtable, strings  
